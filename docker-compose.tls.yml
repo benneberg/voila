@@ -1,0 +1,35 @@
+# Docker Compose TLS Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.tls.yml up
+#
+# This enables TLS for Redis connections in production.
+# Generate certificates using the script in docker/redis-tls-setup.sh
+
+version: '3.8'
+
+services:
+  voila-api:
+    environment:
+      - REDIS_URL=rediss://redis:6380
+      - REDIS_TLS=true
+      - REDIS_SSL_CERT_FILE=/certs/ca.crt
+    volumes:
+      - ./docker/certs:/certs:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    command: >
+      redis-server
+      --appendonly yes
+      --tls-port 6380
+      --tls-cert-file /certs/redis.crt
+      --tls-key-file /certs/redis.key
+      --tls-ca-cert-file /certs/ca.crt
+      --tls-auth-clients no
+      --bind 0.0.0.0
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis_data:/data
+      - ./docker/certs:/certs:ro
