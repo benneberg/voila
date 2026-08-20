@@ -1,0 +1,880 @@
+// ─── Client-Side File Processing Engine (Tier 1) ───
+// Processes files entirely in the browser using Web APIs and WASM
+
+export interface ProcessingResult {
+  type: 'image' | 'text' | 'code' | 'audio' | 'video' | 'document' | 'binary' | 'data' | '3d' | 'font' | 'database' | 'spreadsheet' | 'archive' | 'executable' | 'unknown';
+  content: string;
+  preview?: string;
+  metadata: Record<string, string | number | boolean>;
+  processingTime: number;
+  linesOfCode?: number;
+  language?: string;
+  detectedLanguage?: string;
+  warnings?: string[];
+}
+
+// ─── Language Detection ───
+const LANGUAGE_MAP: Record<string, string> = {
+  py: 'python', pyw: 'python',
+  js: 'javascript', jsx: 'javascript', mjs: 'javascript',
+  ts: 'typescript', tsx: 'typescript',
+  java: 'java',
+  c: 'c', h: 'c',
+  cpp: 'cpp', hpp: 'cpp', cc: 'cpp', cxx: 'cpp',
+  cs: 'csharp',
+  go: 'go',
+  rs: 'rust',
+  rb: 'ruby', erb: 'ruby',
+  php: 'php',
+  swift: 'swift',
+  kt: 'kotlin',
+  scala: 'scala',
+  lua: 'lua',
+  r: 'r',
+  dart: 'dart',
+  vue: 'vue',
+  svelte: 'svelte',
+  html: 'html', htm: 'html',
+  css: 'css', scss: 'scss', sass: 'scss', less: 'less',
+  json: 'json',
+  xml: 'xml',
+  yaml: 'yaml', yml: 'yaml',
+  toml: 'toml',
+  ini: 'ini',
+  sql: 'sql',
+  md: 'markdown',
+  txt: 'plaintext',
+  csv: 'csv',
+  log: 'log',
+  env: 'dotenv',
+  sh: 'bash', bash: 'bash', zsh: 'bash',
+  ps1: 'powershell',
+};
+
+// ─── Main Processing Function ───
+export async function processFile(file: File, category: string): Promise<ProcessingResult> {
+  const start = performance.now();
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+  try {
+    switch (category) {
+      case 'image':
+        return await processImage(file, start);
+      case 'code':
+      case 'web':
+        return await processCode(file, ext, start);
+      case 'config':
+        return await processConfig(file, ext, start);
+      case 'text':
+        return await processText(file, ext, start);
+      case 'data':
+        return await processData(file, ext, start);
+      case 'audio':
+        return await processAudio(file, start);
+      case 'video':
+        return await processVideo(file, start);
+      case 'document':
+        return await processDocument(file, ext, start);
+      case 'spreadsheet':
+        return await processSpreadsheet(file, ext, start);
+      case 'archive':
+        return await processArchive(file, ext, start);
+      case 'executable':
+        return await processExecutable(file, start);
+      case '3d':
+        return await process3DModel(file, ext, start);
+      case 'font':
+        return await processFont(file, ext, start);
+      case 'database':
+        return await processDatabase(file, ext, start);
+      default:
+        return await processUnknown(file, start);
+    }
+  } catch (error) {
+    console.error('Processing error:', error);
+    return {
+      type: 'unknown',
+      content: '',
+      metadata: { error: String(error), size: file.size },
+      processingTime: performance.now() - start,
+      warnings: [`Processing failed: ${error}`],
+    };
+  }
+}
+
+// ─── Image Processing ───
+async function processImage(file: File, start: number): Promise<ProcessingResult> {
+  const url = URL.createObjectURL(file);
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+  // Get image dimensions
+  const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve({ w: 0, h: 0 });
+    img.src = url;
+  });
+
+  // Extract EXIF data if available (basic)
+  let exifData: Record<string, string> = {};
+  try {
+    const buffer = await file.slice(0, 65536).arrayBuffer();
+    exifData = extractBasicExif(buffer, ext);
+  } catch {
+    // EXIF extraction optional
+  }
+
+  const metadata = {
+    width: dims.w,
+    height: dims.h,
+    aspectRatio: dims.w && dims.h ? (dims.w / dims.h).toFixed(2) : 'N/A',
+    megapixels: dims.w && dims.h ? ((dims.w * dims.h) / 1_000_000).toFixed(2) : 'N/A',
+    size: file.size,
+    format: file.type || `image/${ext}`,
+    colorSpace: exifData.ColorSpace || 'Unknown',
+    bitDepth: exifData.BitDepth || 'Unknown',
+    hasAlpha: ['png', 'webp', 'gif', 'svg'].includes(ext) ? 'Yes' : 'No',
+    animated: ext === 'gif' || ext === 'webp' ? 'Possibly' : 'No',
+    lastModified: new Date(file.lastModified).toISOString(),
+  };
+
+  return {
+    type: 'image',
+    content: url,
+    metadata,
+  };
+}
+
+function extractBasicExif(buffer: ArrayBuffer, ext: string): Record<string, string> {
+  const data: Record<string, string> = {};
+  const view = new DataView(buffer);
+
+  // Simple checks based on format
+  if (ext === 'png') {
+    data.ColorSpace = 'RGB/RGBA';
+    data.BitDepth = '8/16 bit';
+  } else if (ext === 'jpg' || ext === 'jpeg') {
+    data.ColorSpace = 'RGB';
+    data.BitDepth = '8 bit';
+  } else if (ext === 'gif') {
+    data.ColorSpace = 'Indexed';
+    data.BitDepth = '8 bit';
+  } else if (ext === 'bmp') {
+    data.ColorSpace = 'RGB';
+    data.BitDepth = '24/32 bit';
+  } else if (ext === 'webp') {
+    data.ColorSpace = 'RGB/RGBA';
+    data.BitDepth = '8 bit';
+  }
+
+  return data;
+}
+
+// ─── Code Processing ───
+async function processCode(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const content = await file.text();
+  const language = LANGUAGE_MAP[ext] || detectLanguageFromContent(content, ext);
+  const lines = content.split('\n');
+  const nonEmpty = lines.filter(l => l.trim().length > 0).length;
+
+  // Analyze code structure
+  const analysis = analyzeCodeStructure(content, language);
+
+  return {
+    type: 'code',
+    content: content.slice(0, 100000), // Cap at 100KB for display
+    metadata: {
+      totalLines: lines.length,
+      nonEmptyLines: nonEmpty,
+      commentLines: analysis.comments,
+      importStatements: analysis.imports,
+      functions: analysis.functions,
+      classes: analysis.classes,
+      characters: content.length,
+      size: file.size,
+      encoding: 'UTF-8',
+      language,
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+    linesOfCode: nonEmpty,
+    language,
+    detectedLanguage: language,
+  };
+}
+
+function analyzeCodeStructure(content: string, language: string) {
+  const result = { comments: 0, imports: 0, functions: 0, classes: 0 };
+
+  const lines = content.split('\n');
+  const commentPatterns: RegExp[] = [];
+
+  switch (language) {
+    case 'python':
+      commentPatterns.push(/^#.*/, /^""".*"""/, /^'''.*'''/);
+      break;
+    case 'javascript':
+    case 'typescript':
+      commentPatterns.push(/\/\/.*/, /\/\*[\s\S]*?\*\//);
+      break;
+    default:
+      commentPatterns.push(/\/\/.*/, /\/\*[\s\S]*?\*\//, /#.*/, /^--.*/);
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (commentPatterns.some(p => p.test(trimmed))) result.comments++;
+    if (/^import\s|^export\s|^require\(|^use\s/.test(trimmed)) result.imports++;
+    if (/\bfunction\s|\bdef\s|\bfn\s|\bfunc\s/.test(trimmed)) result.functions++;
+    if (/\bclass\s|\bstruct\s|\bimpl\s|\bextension\s/.test(trimmed)) result.classes++;
+  }
+
+  return result;
+}
+
+function detectLanguageFromContent(content: string, ext: string): string {
+  if (content.startsWith('#!/bin/bash') || content.startsWith('#!/bin/sh')) return 'bash';
+  if (content.startsWith('#!/usr/bin/env python')) return 'python';
+  if (content.includes('package main')) return 'go';
+  if (content.includes('fn main')) return 'rust';
+  if (content.includes('using System;')) return 'csharp';
+  if (content.match(/\bdef\s+\w+\s*\(/)) return 'python';
+  if (content.match(/\bfunction\s+\w+\s*\(/)) return 'javascript';
+  if (content.match(/\bclass\s+\w+\s+extends\s+\w+/)) return 'java';
+  if (content.match(/\binterface\s+\w+/)) return 'typescript';
+  if (content.includes('import React')) return 'javascript';
+  if (content.includes('SELECT ') || content.includes('INSERT INTO')) return 'sql';
+  return LANGUAGE_MAP[ext] || 'plaintext';
+}
+
+// ─── Config Processing (JSON, YAML, XML, etc.) ───
+async function processConfig(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const content = await file.text();
+  const language = LANGUAGE_MAP[ext] || ext;
+
+  let parsed: unknown = null;
+  let validationError: string | null = null;
+
+  try {
+    if (ext === 'json') {
+      parsed = JSON.parse(content);
+    } else if (ext === 'yaml' || ext === 'yml') {
+      // Basic YAML parsing (structure detection)
+      parsed = parseSimpleYaml(content);
+    }
+  } catch (e) {
+    validationError = String(e);
+  }
+
+  const lines = content.split('\n');
+
+  return {
+    type: 'code',
+    content: content.slice(0, 100000),
+    metadata: {
+      totalLines: lines.length,
+      format: ext.toUpperCase(),
+      size: file.size,
+      encoding: 'UTF-8',
+      language,
+      validationError: validationError || 'None',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+    language,
+  };
+}
+
+function parseSimpleYaml(content: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const lines = content.split('\n');
+
+  for (const line of lines) {
+    if (line.includes(':')) {
+      const [key, ...valueParts] = line.split(':');
+      result[key.trim()] = valueParts.join(':').trim() || true;
+    }
+  }
+
+  return result;
+}
+
+// ─── Text Processing ───
+async function processText(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const content = await file.text();
+  const lines = content.split('\n');
+  const nonEmpty = lines.filter(l => l.trim().length > 0).length;
+
+  // Word count
+  const words = content.split(/\s+/).filter(w => w.length > 0).length;
+  const characters = content.length;
+
+  return {
+    type: 'code',
+    content: content.slice(0, 100000),
+    metadata: {
+      totalLines: lines.length,
+      nonEmptyLines: nonEmpty,
+      words,
+      characters,
+      size: file.size,
+      encoding: 'UTF-8',
+      language: LANGUAGE_MAP[ext] || 'plaintext',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+    linesOfCode: nonEmpty,
+    language: LANGUAGE_MAP[ext] || 'plaintext',
+  };
+}
+
+// ─── Data Processing (CSV, etc.) ───
+async function processData(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const content = await file.text();
+
+  if (ext === 'csv') {
+    return processCSV(content, start);
+  }
+
+  return {
+    type: 'data',
+    content: content.slice(0, 50000),
+    metadata: {
+      format: ext.toUpperCase(),
+      size: file.size,
+      characters: content.length,
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+async function processCSV(content: string, start: number): Promise<ProcessingResult> {
+  const lines = content.split('\n').filter(l => l.trim());
+  const headers = lines[0]?.split(',').map(h => h.trim().replace(/"/g, '')) || [];
+  const dataRows = lines.slice(1);
+
+  return {
+    type: 'data',
+    content: content.slice(0, 100000),
+    metadata: {
+      totalRows: dataRows.length,
+      totalColumns: headers.length,
+      headers: headers.slice(0, 20).join(', '), // First 20 headers
+      format: 'CSV',
+      size: content.length,
+      lastModified: new Date().toISOString(),
+    },
+    processingTime: performance.now() - start,
+    language: 'csv',
+  };
+}
+
+// ─── Audio Processing ───
+async function processAudio(file: File, start: number): Promise<ProcessingResult> {
+  const url = URL.createObjectURL(file);
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+  // Get duration using media element
+  const duration = await getMediaDuration(url, 'audio');
+
+  // Estimate bitrate
+  const bitrate = duration ? Math.round(file.size * 8 / duration / 1000) : 0;
+
+  return {
+    type: 'audio',
+    content: url,
+    metadata: {
+      duration: duration ? formatDuration(duration) : 'Unknown',
+      durationSeconds: duration || 0,
+      size: file.size,
+      format: file.type || `audio/${ext}`,
+      bitrate: bitrate > 0 ? `${bitrate} kbps` : 'Unknown',
+      codec: getAudioCodec(ext),
+      channels: 'Unknown',
+      sampleRate: 'Unknown',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Video Processing ───
+async function processVideo(file: File, start: number): Promise<ProcessingResult> {
+  const url = URL.createObjectURL(file);
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+  // Get duration and dimensions
+  const info = await getVideoInfo(url);
+
+  // Estimate bitrate
+  const bitrate = info.duration ? Math.round(file.size * 8 / info.duration / 1000) : 0;
+
+  return {
+    type: 'video',
+    content: url,
+    metadata: {
+      duration: info.duration ? formatDuration(info.duration) : 'Unknown',
+      durationSeconds: info.duration || 0,
+      width: info.width || 0,
+      height: info.height || 0,
+      resolution: info.width && info.height ? `${info.width}x${info.height}` : 'Unknown',
+      size: file.size,
+      format: file.type || `video/${ext}`,
+      bitrate: bitrate > 0 ? `${bitrate} kbps` : 'Unknown',
+      codec: getVideoCodec(ext),
+      aspectRatio: info.width && info.height ? (info.width / info.height).toFixed(2) : 'Unknown',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+async function getVideoInfo(url: string): Promise<{ duration: number | null; width: number; height: number }> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      resolve({
+        duration: isFinite(video.duration) ? video.duration : null,
+        width: video.videoWidth,
+        height: video.videoHeight,
+      });
+    };
+    video.onerror = () => resolve({ duration: null, width: 0, height: 0 });
+    video.src = url;
+  });
+}
+
+// ─── Document Processing (PDF, Office, etc.) ───
+async function processDocument(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const url = URL.createObjectURL(file);
+
+  if (ext === 'pdf') {
+    return processPDF(file, url, start);
+  }
+
+  // Office documents and other formats
+  return {
+    type: 'document',
+    content: url,
+    metadata: {
+      format: getDocumentFormatName(ext),
+      size: file.size,
+      note: `Preview available. Full editing requires ${getTierNote(ext)}`,
+      tier: getTierNote(ext),
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+async function processPDF(file: File, url: string, start: number): Promise<ProcessingResult> {
+  // Extract basic PDF metadata from header
+  const header = await file.slice(0, 2048).text();
+  const versionMatch = header.match(/^%PDF-(\d\.\d)/);
+  const pdfVersion = versionMatch ? versionMatch[1] : 'Unknown';
+
+  // Count pages (rough estimate from /Count in header)
+  const pageCountMatch = header.match(/\/Count\s+(\d+)/);
+  const pageCount = pageCountMatch ? parseInt(pageCountMatch[1]) : 'Unknown';
+
+  return {
+    type: 'document',
+    content: url,
+    metadata: {
+      pdfVersion,
+      pageCount,
+      size: file.size,
+      format: 'application/pdf',
+      encryption: header.includes('/Encrypt') ? 'Encrypted' : 'None',
+      linearized: header.includes('/Linearized') ? 'Yes' : 'No',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Spreadsheet Processing ───
+async function processSpreadsheet(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const url = URL.createObjectURL(file);
+
+  let metadata: Record<string, unknown> = {
+    format: getDocumentFormatName(ext),
+    size: file.size,
+    lastModified: new Date(file.lastModified).toISOString(),
+  };
+
+  if (ext === 'csv') {
+    try {
+      const content = await file.text();
+      const lines = content.split('\n').filter(l => l.trim());
+      const headers = lines[0]?.split(',').length || 0;
+      metadata = {
+        ...metadata,
+        rows: lines.length - 1,
+        columns: headers,
+        format: 'CSV Spreadsheet',
+      };
+    } catch {
+      // Continue with basic metadata
+    }
+  }
+
+  return {
+    type: 'document',
+    content: url,
+    metadata,
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Archive Processing ───
+async function processArchive(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const buffer = await file.slice(0, 1024 * 1024).arrayBuffer(); // First 1MB for detection
+
+  let metadata: Record<string, unknown> = {
+    format: ext.toUpperCase(),
+    size: file.size,
+    archiveType: getArchiveType(ext),
+    lastModified: new Date(file.lastModified).toISOString(),
+  };
+
+  // Try to detect contents
+  try {
+    if (ext === 'zip') {
+      // Check if it contains specific file types
+      const textDecoder = new TextDecoder('utf-8', { fatal: false });
+      const sample = textDecoder.decode(buffer);
+
+      if (sample.includes('[Content_Types].xml')) {
+        metadata = { ...metadata, likelyFormat: 'Office Document (DOCX/XLSX/PPTX)', contains: 'XML structure detected' };
+      } else if (sample.includes('META-INF')) {
+        metadata = { ...metadata, likelyFormat: 'Java Archive or APK', contains: 'Java manifest detected' };
+      } else {
+        metadata = { ...metadata, likelyFormat: 'ZIP Archive' };
+      }
+    }
+  } catch {
+    // Continue with basic metadata
+  }
+
+  return {
+    type: 'binary',
+    content: '',
+    metadata,
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Executable Processing ───
+async function processExecutable(file: File, start: number): Promise<ProcessingResult> {
+  const buffer = await file.slice(0, 512).arrayBuffer();
+  const uint8 = new Uint8Array(buffer);
+
+  let format = 'Unknown Executable';
+  let architecture = 'Unknown';
+
+  // Detect PE (Windows)
+  if (uint8[0] === 0x4D && uint8[1] === 0x5A) {
+    format = 'PE Executable (Windows)';
+    // Check machine type at offset 0xEC
+    const machineType = uint8[0x5C] || uint8[0x5D];
+    architecture = machineType === 0x64 ? 'x64' : machineType === 0x14c ? 'x86' : 'Unknown';
+  }
+  // Detect ELF (Linux)
+  else if (uint8[0] === 0x7F && uint8[1] === 0x45 && uint8[2] === 0x4C && uint8[3] === 0x46) {
+    format = 'ELF Executable (Linux/Unix)';
+    const arch = uint8[4];
+    architecture = arch === 0x02 ? 'x64' : arch === 0x03 ? 'x86' : arch === 0xB7 ? 'ARM64' : arch === 0x28 ? 'ARM' : 'Unknown';
+  }
+  // Detect Mach-O (macOS)
+  else if (uint8[0] === 0xFE && uint8[1] === 0xED && uint8[2] === 0xFA && uint8[3] === 0xCE) {
+    format = 'Mach-O Executable (macOS)';
+  }
+
+  return {
+    type: 'binary',
+    content: '',
+    metadata: {
+      format,
+      architecture,
+      size: file.size,
+      securityLevel: '🔴 HIGH RISK',
+      warning: 'Executables require secure sandboxing for analysis',
+      note: 'Execution requires Tier 3 (Air-Gapped Firecracker VM)',
+      tier: 'Tier 3: Firecracker Micro-VM',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── 3D Model Processing ───
+async function process3DModel(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  let metadata: Record<string, unknown> = {
+    format: ext.toUpperCase(),
+    size: file.size,
+    note: `3D model processing requires Tier 2 (Cloud)`,
+    tier: 'Tier 2: Docker Container',
+    lastModified: new Date(file.lastModified).toISOString(),
+  };
+
+  if (ext === 'obj') {
+    try {
+      const content = await file.text();
+      const lines = content.split('\n');
+      const vertexCount = lines.filter(l => l.startsWith('v ')).length;
+      const normalCount = lines.filter(l => l.startsWith('vn ')).length;
+      const faceCount = lines.filter(l => l.startsWith('f ')).length;
+
+      metadata = {
+        ...metadata,
+        vertices: vertexCount,
+        normals: normalCount,
+        faces: faceCount,
+        format: 'Wavefront OBJ',
+      };
+    } catch {
+      // Continue with basic metadata
+    }
+  } else if (ext === 'stl') {
+    const buffer = await file.slice(0, 84).arrayBuffer();
+    const view = new DataView(buffer);
+    const isBinary = view.getUint32(80, true) !== 0;
+    if (isBinary) {
+      const triCount = view.getUint32(80, true);
+      metadata = { ...metadata, triangles: triCount, format: 'Binary STL' };
+    } else {
+      metadata = { ...metadata, format: 'ASCII STL' };
+    }
+  }
+
+  return {
+    type: 'binary',
+    content: '',
+    metadata,
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Font Processing ───
+async function processFont(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  const buffer = await file.slice(0, 256).arrayBuffer();
+  const uint8 = new Uint8Array(buffer);
+
+  let fontType = 'Unknown Font';
+  let fontFormat = ext.toUpperCase();
+
+  if (ext === 'ttf' || ext === 'otf') {
+    if (uint8[0] === 0x00 && uint8[1] === 0x01) {
+      fontType = 'TrueType';
+    } else if (uint8[0] === 0x4F && uint8[1] === 0x54 && uint8[2] === 0x54 && uint8[3] === 0x4F) {
+      fontType = 'OpenType (CFF)';
+    }
+  } else if (ext === 'woff') {
+    fontType = 'Web Open Font Format';
+  } else if (ext === 'woff2') {
+    fontType = 'Web Open Font Format 2';
+  }
+
+  return {
+    type: 'binary',
+    content: '',
+    metadata: {
+      fontType,
+      format: fontFormat,
+      size: file.size,
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Database Processing ───
+async function processDatabase(file: File, ext: string, start: number): Promise<ProcessingResult> {
+  if (ext === 'sqlite' || ext === 'db') {
+    const buffer = await file.slice(0, 16).arrayBuffer();
+    const uint8 = new Uint8Array(buffer);
+    const isSQLite = new TextDecoder().decode(uint8).includes('SQLite');
+
+    return {
+      type: 'database',
+      content: '',
+      metadata: {
+        format: 'SQLite Database',
+        verified: isSQLite ? 'Yes' : 'No (may be corrupted or unknown format)',
+        size: file.size,
+        note: 'Full database operations require Tier 2 (Cloud)',
+        tier: 'Tier 2: Docker Container',
+        lastModified: new Date(file.lastModified).toISOString(),
+      },
+      processingTime: performance.now() - start,
+    };
+  }
+
+  if (ext === 'sql') {
+    const content = await file.text();
+    const lines = content.split('\n').filter(l => l.trim());
+
+    return {
+      type: 'database',
+      content: content.slice(0, 50000),
+      metadata: {
+        format: 'SQL Script',
+        statements: countSQLStatements(content),
+        size: file.size,
+        lastModified: new Date(file.lastModified).toISOString(),
+      },
+      processingTime: performance.now() - start,
+      language: 'sql',
+    };
+  }
+
+  return {
+    type: 'database',
+    content: '',
+    metadata: {
+      format: ext.toUpperCase(),
+      size: file.size,
+      note: 'Full database operations require Tier 2 (Cloud)',
+      tier: 'Tier 2: Docker Container',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Unknown File Processing ───
+async function processUnknown(file: File, start: number): Promise<ProcessingResult> {
+  // Try to read as text
+  try {
+    const text = await file.text();
+    const isPrintable = /^[\x20-\x7E\t\n\r]*$/.test(text.slice(0, 1000));
+    if (isPrintable && text.length > 0) {
+      return {
+        type: 'text',
+        content: text.slice(0, 50000),
+        metadata: {
+          format: 'Plain Text (Unknown)',
+          size: file.size,
+          encoding: 'UTF-8',
+          characters: text.length,
+          lines: text.split('\n').length,
+          lastModified: new Date(file.lastModified).toISOString(),
+        },
+        processingTime: performance.now() - start,
+      };
+    }
+  } catch {
+    // Binary file
+  }
+
+  return {
+    type: 'unknown',
+    content: '',
+    metadata: {
+      size: file.size,
+      format: 'Unknown Binary',
+      note: 'Unknown format — requires deep analysis via Tier 2/3',
+      lastModified: new Date(file.lastModified).toISOString(),
+    },
+    processingTime: performance.now() - start,
+  };
+}
+
+// ─── Utility Functions ───
+function getMediaDuration(url: string, type: 'audio' | 'video'): Promise<number | null> {
+  return new Promise((resolve) => {
+    const el = document.createElement(type);
+    el.preload = 'metadata';
+    el.onloadedmetadata = () => {
+      resolve(isFinite(el.duration) ? el.duration : null);
+      URL.revokeObjectURL(url);
+    };
+    el.onerror = () => resolve(null);
+    el.src = url;
+  });
+}
+
+function formatDuration(seconds: number): string {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function getAudioCodec(ext: string): string {
+  const codecs: Record<string, string> = {
+    mp3: 'MPEG Audio Layer III',
+    wav: 'Waveform Audio',
+    flac: 'Free Lossless Audio Codec',
+    ogg: 'Vorbis Audio',
+    aac: 'Advanced Audio Coding',
+    m4a: 'AAC Audio',
+    opus: 'Opus Audio',
+    aiff: 'Audio Interchange File Format',
+  };
+  return codecs[ext] || 'Unknown';
+}
+
+function getVideoCodec(ext: string): string {
+  const codecs: Record<string, string> = {
+    mp4: 'MPEG-4 Part 14',
+    mkv: 'Matroska',
+    webm: 'WebM (VP8/VP9)',
+    avi: 'Audio Video Interleave',
+    mov: 'QuickTime',
+    wmv: 'Windows Media Video',
+    flv: 'Flash Video',
+  };
+  return codecs[ext] || 'Unknown';
+}
+
+function getDocumentFormatName(ext: string): string {
+  const formats: Record<string, string> = {
+    doc: 'MS Word 97-2003',
+    docx: 'MS Word (DOCX)',
+    xls: 'MS Excel 97-2003',
+    xlsx: 'MS Excel (XLSX)',
+    ppt: 'MS PowerPoint 97-2003',
+    pptx: 'MS PowerPoint (PPTX)',
+    odt: 'OpenDocument Text',
+    ods: 'OpenDocument Spreadsheet',
+    odp: 'OpenDocument Presentation',
+    rtf: 'Rich Text Format',
+    pdf: 'PDF Document',
+  };
+  return formats[ext] || ext.toUpperCase();
+}
+
+function getArchiveType(ext: string): string {
+  const types: Record<string, string> = {
+    zip: 'ZIP Archive',
+    rar: 'RAR Archive',
+    '7z': '7-Zip Archive',
+    tar: 'TAR Archive',
+    gz: 'GZIP Archive',
+    bz2: 'BZIP2 Archive',
+    xz: 'XZ Archive',
+    tgz: 'TAR.GZ Archive',
+    zst: 'Zstandard Archive',
+  };
+  return types[ext] || 'Archive';
+}
+
+function getTierNote(ext: string): string {
+  const officeExts = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp'];
+  if (officeExts.includes(ext)) return 'Tier 2 (Cloud)';
+  return 'Tier 2 (Cloud) for full processing';
+}
+
+function countSQLStatements(content: string): number {
+  const keywords = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|GRANT|REVOKE)/gim;
+  const matches = content.match(keywords);
+  return matches ? matches.length : 0;
+}
