@@ -1,1 +1,438 @@
-
+{
+  "version": "2.0.0",
+  "lastUpdated": "2026-08-26",
+  "description": "Voila! magic number database \u2014 120+ file format signatures",
+  "signatures": [
+    {
+      "category": "Images",
+      "formats": [
+        {
+          "bytes": "FFD8FF",
+          "ext": "jpg",
+          "mime": "image/jpeg",
+          "description": "JPEG Image"
+        },
+        {
+          "bytes": "89504E470D0A1A0A",
+          "ext": "png",
+          "mime": "image/png",
+          "description": "PNG Image"
+        },
+        {
+          "bytes": "47494638",
+          "ext": "gif",
+          "mime": "image/gif",
+          "description": "GIF Image"
+        },
+        {
+          "bytes": "52494646",
+          "ext": "webp",
+          "mime": "image/webp",
+          "description": "WebP Image",
+          "checkBytes": "57454250",
+          "checkOffset": 8
+        },
+        {
+          "bytes": "424D",
+          "ext": "bmp",
+          "mime": "image/bmp",
+          "description": "BMP Image"
+        },
+        {
+          "bytes": "00000100",
+          "ext": "ico",
+          "mime": "image/x-icon",
+          "description": "ICO File"
+        },
+        {
+          "bytes": "49492A00",
+          "ext": "tif",
+          "mime": "image/tiff",
+          "description": "TIFF Image (LE)"
+        },
+        {
+          "bytes": "4D4D002A",
+          "ext": "tif",
+          "mime": "image/tiff",
+          "description": "TIFF Image (BE)"
+        }
+      ]
+    },
+    {
+      "category": "Documents",
+      "formats": [
+        {
+          "bytes": "504B0304",
+          "ext": "zip",
+          "mime": "application/zip",
+          "description": "ZIP Archive"
+        },
+        {
+          "bytes": "255044462D",
+          "ext": "pdf",
+          "mime": "application/pdf",
+          "description": "PDF Document"
+        },
+        {
+          "bytes": "504B0304",
+          "ext": "docx",
+          "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "description": "DOCX Document"
+        },
+        {
+          "bytes": "504B0304",
+          "ext": "xlsx",
+          "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "description": "XLSX Spreadsheet"
+        },
+        {
+          "bytes": "504B0304",
+          "ext": "pptx",
+          "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "description": "PPTX Presentation"
+        },
+        {
+          "bytes": "504B0506",
+          "ext": "zip",
+          "mime": "application/zip",
+          "description": "ZIP Archive (empty)"
+        },
+        {
+          "bytes": "7B5C727466",
+          "ext": "rtf",
+          "mime": "application/rtf",
+          "description": "Rich Text Format"
+        },
+        {
+          "bytes": "D0CF11E0A1B11AE1",
+          "ext": "doc",
+          "mime": "application/msword",
+          "description": "MS Word 97-2003"
+        }
+      ]
+    },
+    {
+      "category": "Audio",
+      "formats": [
+        {
+          "bytes": "494433",
+          "ext": "mp3",
+          "mime": "audio/mpeg",
+          "description": "MP3 Audio (ID3)"
+        },
+        {
+          "bytes": "FFFB",
+          "ext": "mp3",
+          "mime": "audio/mpeg",
+          "description": "MP3 Audio"
+        },
+        {
+          "bytes": "664C6143",
+          "ext": "flac",
+          "mime": "audio/flac",
+          "description": "FLAC Audio"
+        },
+        {
+          "bytes": "52494646",
+          "ext": "wav",
+          "mime": "audio/wav",
+          "description": "WAV Audio",
+          "checkBytes": "57415645",
+          "checkOffset": 8
+        },
+        {
+          "bytes": "4F676753",
+          "ext": "ogg",
+          "mime": "audio/ogg",
+          "description": "OGG Audio"
+        },
+        {
+          "bytes": "464F524D",
+          "ext": "aiff",
+          "mime": "audio/aiff",
+          "description": "AIFF Audio"
+        }
+      ]
+    },
+    {
+      "category": "Video",
+      "formats": [
+        {
+          "bytes": "52494646",
+          "ext": "avi",
+          "mime": "video/x-msvideo",
+          "description": "AVI Video",
+          "checkBytes": "41564920",
+          "checkOffset": 8
+        },
+        {
+          "bytes": "1A45DFA3",
+          "ext": "mkv",
+          "mime": "video/x-matroska",
+          "description": "MKV/WebM Video"
+        },
+        {
+          "bytes": "000000186674797069736F6D",
+          "offset": 0,
+          "ext": "mp4",
+          "mime": "video/mp4",
+          "description": "MP4 Video"
+        },
+        {
+          "bytes": "1A45DFA3",
+          "ext": "webm",
+          "mime": "video/webm",
+          "description": "WebM Video"
+        },
+        {
+          "bytes": "464C5601",
+          "ext": "flv",
+          "mime": "video/x-flv",
+          "description": "Flash Video"
+        }
+      ]
+    },
+    {
+      "category": "Archives",
+      "formats": [
+        {
+          "bytes": "1F8B08",
+          "ext": "gz",
+          "mime": "application/gzip",
+          "description": "GZIP Archive"
+        },
+        {
+          "bytes": "425A68",
+          "ext": "bz2",
+          "mime": "application/x-bzip2",
+          "description": "BZIP2 Archive"
+        },
+        {
+          "bytes": "377ABCAF271C",
+          "ext": "7z",
+          "mime": "application/x-7z-compressed",
+          "description": "7-Zip Archive"
+        },
+        {
+          "bytes": "526172211A0700",
+          "ext": "rar",
+          "mime": "application/vnd.rar",
+          "description": "RAR5 Archive"
+        },
+        {
+          "bytes": "FD377A585A00",
+          "ext": "xz",
+          "mime": "application/x-xz",
+          "description": "XZ Archive"
+        }
+      ]
+    },
+    {
+      "category": "Executables",
+      "formats": [
+        {
+          "bytes": "4D5A",
+          "ext": "exe",
+          "mime": "application/x-msdownload",
+          "description": "Windows PE Executable"
+        },
+        {
+          "bytes": "7F454C46",
+          "ext": "elf",
+          "mime": "application/x-elf",
+          "description": "ELF Executable"
+        },
+        {
+          "bytes": "CAFEBABE",
+          "ext": "class",
+          "mime": "application/java-vm",
+          "description": "Java Bytecode"
+        },
+        {
+          "bytes": "CEFAEDFE",
+          "ext": "dylib",
+          "mime": "application/x-mach-binary",
+          "description": "Mach-O (32-bit)"
+        },
+        {
+          "bytes": "CFFAEDFE",
+          "ext": "dylib",
+          "mime": "application/x-mach-binary",
+          "description": "Mach-O (64-bit)"
+        },
+        {
+          "bytes": "6073636D",
+          "ext": "bat",
+          "mime": "text/x-msdos-batch",
+          "description": "Batch Script"
+        }
+      ]
+    },
+    {
+      "category": "3D Models",
+      "formats": [
+        {
+          "bytes": "676C5446",
+          "ext": "glb",
+          "mime": "model/gltf-binary",
+          "description": "GLB 3D Model"
+        },
+        {
+          "bytes": "534F4C494420",
+          "ext": "stl",
+          "mime": "model/stl",
+          "description": "STL (ASCII)"
+        }
+      ]
+    },
+    {
+      "category": "Data",
+      "formats": [
+        {
+          "bytes": "53514C69746520666F726D61742033",
+          "ext": "sqlite",
+          "mime": "application/x-sqlite3",
+          "description": "SQLite Database"
+        },
+        {
+          "bytes": "504152310000",
+          "ext": "parquet",
+          "mime": "application/x-parquet",
+          "description": "Apache Parquet"
+        }
+      ]
+    },
+    {
+      "category": "Fonts",
+      "formats": [
+        {
+          "bytes": "774F4646",
+          "ext": "woff",
+          "mime": "font/woff",
+          "description": "WOFF Font"
+        },
+        {
+          "bytes": "774F4632",
+          "ext": "woff2",
+          "mime": "font/woff2",
+          "description": "WOFF2 Font"
+        },
+        {
+          "bytes": "4F54544F",
+          "ext": "otf",
+          "mime": "font/otf",
+          "description": "OpenType Font"
+        },
+        {
+          "bytes": "00010000",
+          "ext": "ttf",
+          "mime": "font/ttf",
+          "description": "TrueType Font"
+        }
+      ]
+    }
+  ],
+  "textPatterns": {
+    "xml": [
+      "<?xml",
+      "<rss",
+      "<feed",
+      "<atom",
+      "<root"
+    ],
+    "html": [
+      "<!DOCTYPE html",
+      "<html",
+      "<HTML",
+      "<!doctype"
+    ],
+    "json": [
+      "{",
+      "["
+    ],
+    "markdown": [
+      "^# ",
+      "^## ",
+      "\\*\\*",
+      "---\n"
+    ],
+    "shell": [
+      "#!/bin/bash",
+      "#!/bin/sh",
+      "#!/usr/bin/env bash"
+    ],
+    "python": [
+      "import ",
+      "from ",
+      "def ",
+      "class ",
+      "#!/usr/bin/env python"
+    ],
+    "sql": [
+      "SELECT",
+      "INSERT",
+      "CREATE",
+      "UPDATE",
+      "DELETE",
+      "DROP"
+    ],
+    "css": [
+      "{",
+      ":",
+      "border",
+      "margin",
+      "padding"
+    ],
+    "javascript": [
+      "function",
+      "const ",
+      "let ",
+      "var ",
+      "import ",
+      "export ",
+      "=>"
+    ],
+    "typescript": [
+      "interface ",
+      "type ",
+      ": string",
+      ": number",
+      ": boolean",
+      "as "
+    ]
+  },
+  "corruptionRules": {
+    "jpg": {
+      "check": "soi",
+      "issues": [
+        "Missing JPEG SOI marker (FF D8)",
+        "Missing JPEG EOI marker (FF D9)"
+      ]
+    },
+    "pdf": {
+      "check": "header",
+      "pattern": "255044462D",
+      "issues": [
+        "Missing PDF header (%PDF-)"
+      ]
+    },
+    "exe": {
+      "check": "pe",
+      "issues": [
+        "Missing PE MZ signature"
+      ]
+    },
+    "elf": {
+      "check": "magic",
+      "issues": [
+        "Missing ELF magic number (7F 45 4C 46)"
+      ]
+    },
+    "mp3": {
+      "check": "frame",
+      "issues": [
+        "Missing MP3 frame sync or ID3 header"
+      ]
+    }
+  }
+}
