@@ -1,1 +1,138 @@
-
+{
+  "title": "Voila! — Overview",
+  "uid": "voila-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "tags": ["voila", "production"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{job=\"voila-backend\"}[1m])",
+          "legendFormat": "{{method}} {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error Rate (%)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "100 * rate(http_requests_total{job=\"voila-backend\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"voila-backend\"}[5m])",
+          "legendFormat": "5xx %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "thresholds": {
+          "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]
+        }}
+      }
+    },
+    {
+      "id": 3,
+      "title": "P50 / P95 / P99 Latency",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"voila-backend\"}[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"voila-backend\"}[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"voila-backend\"}[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 4,
+      "title": "Files Processed / min",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(voila_file_processing_total[1m]) * 60",
+          "legendFormat": "{{tier}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Processing Failures / min",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 8, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(voila_file_processing_errors_total[1m]) * 60",
+          "legendFormat": "{{reason}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "red", "mode": "fixed" } } }
+    },
+    {
+      "id": 6,
+      "title": "Queue Depth",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 8, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "voila_processing_queue_depth",
+          "legendFormat": "Queued jobs"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Backend Memory (RSS)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes{job=\"voila-backend\"} / 1024 / 1024",
+          "legendFormat": "RSS MB"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "megabytes" } }
+    },
+    {
+      "id": 8,
+      "title": "Redis Connected Clients",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "redis_connected_clients",
+          "legendFormat": "clients"
+        }
+      ]
+    }
+  ]
+}
