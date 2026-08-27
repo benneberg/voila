@@ -878,3 +878,11 @@ function countSQLStatements(content: string): number {
   const matches = content.match(keywords);
   return matches ? matches.length : 0;
 }
+
+
+// ─── FileProcessor class (for tests and advanced usage) ───────────────────────
+export class FileProcessor {
+  async process(file: File, category: string): Promise<ProcessingResult> {
+    return processFile(file, category);
+  }
+}

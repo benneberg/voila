@@ -245,10 +245,12 @@ export async function detectTrueFileType(file: File): Promise<FileTypeResult> {
     !(detected.ext === 'ttf' && extension === 'otf'));
 
   // Corruption detection using rules from JSON
+  // Run on detected type OR declared extension (catches named-but-invalid files)
   let corruptionCheck = { isHealthy: true, issues: [] as string[] };
-  if (detected) {
+  const corruptionExt = detected?.ext ?? extension;
+  if (corruptionExt) {
     const data = signatureData as SignatureData;
-    const rule = data.corruptionRules[detected.ext];
+    const rule = data.corruptionRules[corruptionExt];
 
     if (rule) {
       const issues: string[] = [];
@@ -286,7 +288,7 @@ export async function detectTrueFileType(file: File): Promise<FileTypeResult> {
 
       corruptionCheck = {
         isHealthy: issues.length === 0,
-        issues
+        issues,
       };
     }
   }
