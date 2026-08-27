@@ -1,1 +1,110 @@
+groups:
 
+  # ── API health ─────────────────────────────────────────────────────────────
+  - name: voila.api
+    rules:
+
+      - alert: BackendDown
+        expr: up{job="voila-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Voila backend is unreachable"
+          description: "The FastAPI backend has been unreachable for > 1 min."
+
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{job="voila-backend", status=~"5.."}[5m])
+          /
+          rate(http_requests_total{job="voila-backend"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate ({{ $value | humanizePercentage }})"
+          description: "More than 5% of requests are returning 5xx errors."
+
+      - alert: SlowRequests
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{job="voila-backend"}[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 response time > 5s"
+          description: "95th percentile latency is {{ $value | humanizeDuration }}."
+
+  # ── File processing ────────────────────────────────────────────────────────
+  - name: voila.processing
+    rules:
+
+      - alert: HighProcessingFailureRate
+        expr: |
+          rate(voila_file_processing_errors_total[10m])
+          /
+          rate(voila_file_processing_total[10m]) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "File processing failure rate > 10%"
+          description: "{{ $value | humanizePercentage }} of file processing jobs are failing."
+
+      - alert: ProcessingQueueBacklog
+        expr: voila_processing_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Processing queue backlog > 100 jobs"
+          description: "Queue depth is {{ $value }} — workers may be struggling."
+
+      - alert: Tier2LatencyHigh
+        expr: |
+          histogram_quantile(0.90,
+            rate(voila_tier2_processing_seconds_bucket[10m])
+          ) > 60
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tier 2 (Tika) P90 latency > 60s"
+          description: "P90 Tika processing time is {{ $value | humanizeDuration }}."
+
+  # ── Infrastructure ─────────────────────────────────────────────────────────
+  - name: voila.infra
+    rules:
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is unreachable"
+          description: "Redis has been unreachable for > 1 min — queue and rate limiting are offline."
+
+      - alert: HighMemoryUsage
+        expr: |
+          process_resident_memory_bytes{job="voila-backend"}
+          / 1024 / 1024 > 800
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend memory usage > 800 MB"
+          description: "RSS is {{ $value | humanize }} MB — check for memory leaks."
+
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/tmp"} /
+           node_filesystem_size_bytes{mountpoint="/tmp"}) < 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Upload temp directory < 10% free"
+          description: "Only {{ $value | humanizePercentage }} disk space left on /tmp."
