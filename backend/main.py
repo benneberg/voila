@@ -9,7 +9,7 @@ import asyncio
 import hashlib
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
@@ -345,7 +345,7 @@ async def health_check():
         status="healthy",
         redis=redis_client is not None,
         openai=OPENAI_AVAILABLE and llm_cache is not None,
-        timestamp=datetime.utcnow().isoformat()
+        timestamp=datetime.now(timezone.utc).isoformat()
     )
 
 @app.post("/api/v1/metadata/extract", tags=["Tier 2 - Metadata"])
@@ -367,7 +367,7 @@ async def extract_metadata(request: Request, payload: FileMetadataRequest):
         "file_name": payload.file_name,
         "file_size": payload.file_size,
         "detected_type": payload.file_type,
-        "extraction_time": datetime.utcnow().isoformat(),
+        "extraction_time": datetime.now(timezone.utc).isoformat(),
         "tika_version": "2.9.1",
         "parsing_mode": "standard",
         "embedded_resources": 0,
@@ -475,7 +475,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         "file_name": file.filename,
         "file_size": len(contents),
         "content_type": file.content_type,
-        "upload_time": datetime.utcnow().isoformat(),
+        "upload_time": datetime.now(timezone.utc).isoformat(),
         "ttl_seconds": 3600,
         "storage": "s3" if os.getenv("S3_BUCKET") else "memory",
         "note": "File will be auto-deleted after 1 hour"
@@ -528,7 +528,7 @@ async def get_cost_for_ip(ip_address: str):
         return {"cost": 0, "mode": "demo"}
 
     try:
-        month_key = datetime.utcnow().strftime("%Y%m")
+        month_key = datetime.now(timezone.utc).strftime("%Y%m")
         cost_key = f"cost:{ip_address}:{month_key}"
         cost = await redis_client.get(cost_key) or 0
 
