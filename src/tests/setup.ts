@@ -24,7 +24,7 @@ URL.revokeObjectURL = jest.fn();
 if (typeof performance === 'undefined') {
   global.performance = {
     now: jest.fn(() => Date.now()),
-  } as Performance;
+  } as unknown as Performance;
 }
 
 // Suppress console errors in tests (optional)
@@ -67,3 +67,22 @@ declare global {
 }
 
 export {};
+
+// Polyfill Blob.arrayBuffer for jsdom (not implemented)
+if (!Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = function () {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(this);
+    });
+  };
+}
+
+// Polyfill TextEncoder/TextDecoder for jsdom
+import { TextEncoder, TextDecoder } from 'util';
+if (typeof global.TextEncoder === 'undefined') {
+  (global as typeof globalThis & { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
+  (global as typeof globalThis & { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder as typeof globalThis['TextDecoder'];
+}

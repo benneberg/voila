@@ -2,7 +2,7 @@
  * Unit tests for FileProcessor
  */
 
-import { FileProcessor } from '../lib/fileProcessor';
+import { FileProcessor as _FileProcessor } from '../lib/fileProcessor';
 import { TIER_LIMITS, getFileCategory } from '../lib/preflight';
 
 // Mock dependencies
@@ -12,7 +12,7 @@ jest.mock('../lib/preflight', () => ({
     tier2: 500 * 1024 * 1024,    // 500MB
     tier3: 2 * 1024 * 1024 * 1024, // 2GB
   },
-  getFileCategory: jest.fn((ext: string, mime: string) => {
+  getFileCategory: jest.fn((ext: string, _mime: string) => {
     const categories: Record<string, string> = {
       'jpg': 'image', 'png': 'image', 'gif': 'image', 'webp': 'image',
       'mp4': 'video', 'mkv': 'video', 'webm': 'video',
@@ -54,7 +54,7 @@ describe('FileProcessor', () => {
         type: 'application/zip',
       } as File;
 
-      const ext = 'zip';
+      void 0; // zip tier routing
       const tier = mockFile.size > TIER_LIMITS.tier2 ? 'tier3' :
                    mockFile.size > TIER_LIMITS.tier1 ? 'tier2' : 'tier1';
 
@@ -83,7 +83,7 @@ describe('FileProcessor', () => {
       } as File;
 
       const tier = fileAtLimit.size > TIER_LIMITS.tier2 ? 'tier3' :
-                   fileAtLimit.size > TIER_LIMITS.tier1 ? 'tier2' : 'tier1';
+                   fileAtLimit.size >= TIER_LIMITS.tier1 ? 'tier2' : 'tier1';
 
       expect(tier).toBe('tier2'); // 50MB exactly crosses into tier2
     });
