@@ -13,8 +13,6 @@
 
 ## Features
 
-## Features
-
 - **Magic Number Detection** - Identifies file types by content, not extension
 - **Corruption Detection** - Warns about damaged files before opening
 - **Tiered Processing** - Routes files to appropriate processing environment:
