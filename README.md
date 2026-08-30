@@ -1,8 +1,17 @@
 # Voila! - Universal File Handler
 
-> "One input, infinite understanding"
+> A universal file handler that masks a massively complex, multi-modal distributed system behind a single, ultra-minimalist user interface.
 
-A universal file handler that masks a massively complex, multi-modal distributed system behind a single, ultra-minimalist user interface.
+[![CI](https://github.com/benneberg/voila/actions/workflows/ci.yml/badge.svg)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+
+---
+
+## Features
 
 ## Features
 
