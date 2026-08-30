@@ -13,29 +13,38 @@ jobs:
   frontend:
     name: Frontend (Node.js & TypeScript)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to commit the new lockfile
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Ensures git-auto-commit has proper history
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Install dependencies
-        # 'npm ci' is perfect here because you have a committed package-lock.json
-        run: npm ci
+      - name: Install dependencies & Generate Lockfile
+        # 'npm install' will resolve the new Vite 8 compatible plugin 
+        # and generate a fresh, cross-platform package-lock.json
+        run: npm install
 
       - name: Type Check
         run: npx tsc --noEmit
 
       - name: Run Test Suite
-        # Uses your existing 'test:ci' script which includes coverage and --forceExit
         run: npm run test:ci
 
       - name: Build Application
         run: npm run build
+
+      - name: Auto-commit fresh package-lock.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update package-lock.json for Vite 8 compatibility"
+          file_pattern: "package-lock.json"
 
   backend:
     name: Backend (Python & FastAPI)
@@ -55,7 +64,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          # Safely install dev dependencies (pytest, etc.) if the file exists
           if [ -f backend/requirements-dev.txt ]; then pip install -r backend/requirements-dev.txt; fi
 
       - name: Run Backend Tests
@@ -64,7 +72,6 @@ jobs:
           pytest --cov=. --cov-report=xml
 
       - name: Basic Syntax Check
-        # Ensures the main entry point has no glaring syntax errors before deployment
         run: |
           cd backend
           python -m py_compile main.py
