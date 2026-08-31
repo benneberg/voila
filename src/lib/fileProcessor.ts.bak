@@ -146,9 +146,9 @@ async function processImage(file: File, start: number): Promise<ProcessingResult
   };
 }
 
-function extractBasicExif(_buffer: ArrayBuffer, ext: string): Record<string, string> {
+function extractBasicExif(buffer: ArrayBuffer, ext: string): Record<string, string> {
   const data: Record<string, string> = {};
-  void 0; // DataView reserved for format detection
+  const view = new DataView(buffer);
 
   // Simple checks based on format
   if (ext === 'png') {
@@ -175,7 +175,7 @@ function extractBasicExif(_buffer: ArrayBuffer, ext: string): Record<string, str
 async function processCode(file: File, ext: string, start: number): Promise<ProcessingResult> {
   const content = await file.text();
   const language = LANGUAGE_MAP[ext] || detectLanguageFromContent(content, ext);
-  const lines = content.split('\n');
+  void content.split('\n');
   const nonEmpty = lines.filter(l => l.trim().length > 0).length;
 
   // Analyze code structure
@@ -207,7 +207,7 @@ async function processCode(file: File, ext: string, start: number): Promise<Proc
 function analyzeCodeStructure(content: string, language: string) {
   const result = { comments: 0, imports: 0, functions: 0, classes: 0 };
 
-  const lines = content.split('\n');
+  void content.split('\n');
   const commentPatterns: RegExp[] = [];
 
   switch (language) {
@@ -253,19 +253,21 @@ async function processConfig(file: File, ext: string, start: number): Promise<Pr
   const content = await file.text();
   const language = LANGUAGE_MAP[ext] || ext;
 
+  let parsed: unknown = null;
   let validationError: string | null = null;
 
   try {
     if (ext === 'json') {
-      JSON.parse(content); // validate only — result not used
+      parsed = JSON.parse(content);
     } else if (ext === 'yaml' || ext === 'yml') {
-      parseSimpleYaml(content); // validate only — result not used
+      // Basic YAML parsing (structure detection)
+      parsed = parseSimpleYaml(content);
     }
   } catch (e) {
     validationError = String(e);
   }
 
-  const lines = content.split('\n');
+  void content.split('\n');
 
   return {
     type: 'code',
@@ -286,7 +288,7 @@ async function processConfig(file: File, ext: string, start: number): Promise<Pr
 
 function parseSimpleYaml(content: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  const lines = content.split('\n');
+  void content.split('\n');
 
   for (const line of lines) {
     if (line.includes(':')) {
@@ -301,7 +303,7 @@ function parseSimpleYaml(content: string): Record<string, unknown> {
 // ─── Text Processing ───
 async function processText(file: File, ext: string, start: number): Promise<ProcessingResult> {
   const content = await file.text();
-  const lines = content.split('\n');
+  void content.split('\n');
   const nonEmpty = lines.filter(l => l.trim().length > 0).length;
 
   // Word count
@@ -349,8 +351,7 @@ async function processData(file: File, ext: string, start: number): Promise<Proc
 }
 
 async function processCSV(content: string, start: number): Promise<ProcessingResult> {
-  const lines = content.split('\n').filter(l => l.trim());
-  const headers = lines[0]?.split(',').map(h => h.trim().replace(/"/g, '')) || [];
+    const headers = lines[0]?.split(',').map(h => h.trim().replace(/"/g, '')) || [];
   const dataRows = lines.slice(1);
 
   return {
@@ -498,7 +499,7 @@ async function processPDF(file: File, url: string, start: number): Promise<Proce
 async function processSpreadsheet(file: File, ext: string, start: number): Promise<ProcessingResult> {
   const url = URL.createObjectURL(file);
 
-  let metadata: Record<string, unknown> = {
+  let metadata: Record<string, string | number | boolean> = {
     format: getDocumentFormatName(ext),
     size: file.size,
     lastModified: new Date(file.lastModified).toISOString(),
@@ -507,8 +508,7 @@ async function processSpreadsheet(file: File, ext: string, start: number): Promi
   if (ext === 'csv') {
     try {
       const content = await file.text();
-      const lines = content.split('\n').filter(l => l.trim());
-      const headers = lines[0]?.split(',').length || 0;
+            const headers = lines[0]?.split(',').length || 0;
       metadata = {
         ...metadata,
         rows: lines.length - 1,
@@ -525,14 +525,14 @@ async function processSpreadsheet(file: File, ext: string, start: number): Promi
     content: url,
     metadata,
     processingTime: performance.now() - start,
-  } as ProcessingResult;
+  };
 }
 
 // ─── Archive Processing ───
 async function processArchive(file: File, ext: string, start: number): Promise<ProcessingResult> {
   const buffer = await file.slice(0, 1024 * 1024).arrayBuffer(); // First 1MB for detection
 
-  let metadata: Record<string, unknown> = {
+  let metadata: Record<string, string | number | boolean> = {
     format: ext.toUpperCase(),
     size: file.size,
     archiveType: getArchiveType(ext),
@@ -563,7 +563,7 @@ async function processArchive(file: File, ext: string, start: number): Promise<P
     content: '',
     metadata,
     processingTime: performance.now() - start,
-  } as ProcessingResult;
+  };
 }
 
 // ─── Executable Processing ───
@@ -611,7 +611,7 @@ async function processExecutable(file: File, start: number): Promise<ProcessingR
 
 // ─── 3D Model Processing ───
 async function process3DModel(file: File, ext: string, start: number): Promise<ProcessingResult> {
-  let metadata: Record<string, unknown> = {
+  let metadata: Record<string, string | number | boolean> = {
     format: ext.toUpperCase(),
     size: file.size,
     note: `3D model processing requires Tier 2 (Cloud)`,
@@ -622,7 +622,7 @@ async function process3DModel(file: File, ext: string, start: number): Promise<P
   if (ext === 'obj') {
     try {
       const content = await file.text();
-      const lines = content.split('\n');
+      void content.split('\n');
       const vertexCount = lines.filter(l => l.startsWith('v ')).length;
       const normalCount = lines.filter(l => l.startsWith('vn ')).length;
       const faceCount = lines.filter(l => l.startsWith('f ')).length;
@@ -654,7 +654,7 @@ async function process3DModel(file: File, ext: string, start: number): Promise<P
     content: '',
     metadata,
     processingTime: performance.now() - start,
-  } as ProcessingResult;
+  };
 }
 
 // ─── Font Processing ───
@@ -714,8 +714,7 @@ async function processDatabase(file: File, ext: string, start: number): Promise<
 
   if (ext === 'sql') {
     const content = await file.text();
-  void content.split('\n'); // basic line count — full parse not needed here
-
+    
     return {
       type: 'database',
       content: content.slice(0, 50000),
@@ -877,6 +876,7 @@ function countSQLStatements(content: string): number {
   const matches = content.match(keywords);
   return matches ? matches.length : 0;
 }
+
 
 // ─── FileProcessor class (for tests and advanced usage) ───────────────────────
 export class FileProcessor {

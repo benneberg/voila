@@ -3,7 +3,6 @@
  * Handles Tier 2/3 requests with fallback to client-side processing
  */
 
-import type { ProcessingResult } from './fileProcessor';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -54,7 +53,7 @@ interface StatsResponse {
 }
 
 // Configuration - use environment variable or default
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || '/api';
 
 class VoilaApiClient {
   private baseUrl: string;
