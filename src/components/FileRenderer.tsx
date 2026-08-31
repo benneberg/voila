@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Image, FileText, Music, Video, FileCode, Archive, AlertTriangle, File,
-  Box, Type, Database, Table, Cpu, HardDrive, Code2, FileJson, Layers,
+  Box, Type, Database, Table, Cpu, HardDrive,
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Download, FolderOpen,
   Play, Pause, Edit3, Terminal, Save, Loader2, Wand2, Image as ImageIcon, Sparkles,
   Brain, Cloud, Zap
@@ -74,7 +74,7 @@ export default function FileRenderer({ result, fileName }: FileRendererProps) {
 
       {/* Render Area */}
       <div className="glass rounded-xl overflow-hidden">
-        {result.type === 'image' && <ImagePreview result={result} />}
+        {result.type === 'image' && <ImagePreview result={result} fileName={fileName} />}
         {result.type === 'code' && <CodePreview result={result} fileName={fileName} />}
         {result.type === 'audio' && <AudioPreview result={result} />}
         {result.type === 'video' && <VideoPreview result={result} />}
@@ -131,12 +131,11 @@ function FileIcon({ type }: { type: string }) {
   }
 }
 
-function ImagePreview({ result }: { result: ProcessingResult }) {
+function ImagePreview({ result, fileName = "" }: { result: ProcessingResult; fileName?: string }) {
   const [scale, setScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const ext = String(result.metadata.format || '').replace('image/', '');
-  const isSvg = ext === 'svg';
 
   const handleZoomIn = () => setScale(s => Math.min(s + 0.25, 3));
   const handleZoomOut = () => setScale(s => Math.max(s - 0.25, 0.5));
@@ -259,7 +258,7 @@ function CodePreview({ result, fileName }: { result: ProcessingResult; fileName:
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
   const [monacoLoaded, setMonacoLoaded] = useState(false);
-  const [editorInstance, setEditorInstance] = useState<any>(null);
+  const [, setEditorInstance] = useState<any>(null);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
   const [isBackendAvailable, setIsBackendAvailable] = useState<boolean | null>(null);
@@ -1047,7 +1046,8 @@ function PDFViewer({ result }: { result: ProcessingResult }) {
 
   useEffect(() => {
     const loadPdfJs = async () => {
-      if (window.pdfjsLib) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).pdfjsLib) {
         setPdfjsLoaded(true);
         return;
       }
@@ -1073,7 +1073,8 @@ function PDFViewer({ result }: { result: ProcessingResult }) {
     const loadPdf = async () => {
       try {
         setLoading(true);
-        const loadingTask = window.pdfjsLib.getDocument(result.content);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const loadingTask = (window as any).pdfjsLib.getDocument(result.content);
         const pdf = await loadingTask.promise;
         setPdfDoc(pdf);
         setTotalPages(pdf.numPages);
@@ -1279,146 +1280,6 @@ function DataPreview({ result }: { result: ProcessingResult }) {
   );
 }
 
-function Model3DPreview({ result }: { result: ProcessingResult }) {
-  const format = String(result.metadata.format || result.metadata.format);
-  const [showRaw, setShowRaw] = useState(false);
-  const [rawContent, setRawContent] = useState<string>('');
-  const isObj = format.toLowerCase() === 'obj' || format.includes('OBJ');
-
-  // Parse OBJ file for preview
-  const parseObjPreview = async (content: string) => {
-    const lines = content.split('\n');
-    const vertices: {x: number; y: number; z: number}[] = [];
-    const faces: number[][] = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('v ')) {
-        const parts = trimmed.slice(2).split(/\s+/);
-        if (parts.length >= 3) {
-          vertices.push({
-            x: parseFloat(parts[0]) || 0,
-            y: parseFloat(parts[1]) || 0,
-            z: parseFloat(parts[2]) || 0
-          });
-        }
-      } else if (trimmed.startsWith('f ')) {
-        const parts = trimmed.slice(2).split(/\s+/);
-        const face = parts.map(p => parseInt(p.split('/')[0]) - 1).filter(i => !isNaN(i));
-        if (face.length >= 3) faces.push(face);
-      }
-    }
-
-    return { vertices, faces };
-  };
-
-  // Simple wireframe preview for OBJ files
-  const [objData, setObjData] = useState<{vertices: {x: number; y: number; z: number}[]; faces: number[][]} | null>(null);
-
-  useEffect(() => {
-    if (isObj && result.content) {
-      parseObjPreview(result.content).then(setObjData);
-    }
-  }, [isObj, result.content]);
-
-  const handleShowRaw = async () => {
-    if (!rawContent && result.content) {
-      const text = await fetch(result.content).then(r => r.text()).catch(() => result.content?.slice(0, 5000) || '');
-      setRawContent(text);
-    }
-    setShowRaw(true);
-  };
-
-  return (
-    <div className="p-6 flex flex-col items-center gap-4">
-      {/* 3D Icon with rotation animation */}
-      <motion.div
-        className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center border border-indigo-500/20"
-        animate={{ rotateY: [0, 360] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-        style={{ perspective: 1000 }}
-      >
-        <Box className="w-12 h-12 text-indigo-400" />
-      </motion.div>
-
-      <div className="text-center">
-        <p className="text-sm text-white/60">{format}</p>
-        <p className="text-[11px] text-white/30 mt-1">3D Model Preview</p>
-      </div>
-
-      {/* OBJ Stats */}
-      {objData && (
-        <div className="grid grid-cols-3 gap-4 text-[11px]">
-          <div className="text-center">
-            <div className="text-voila-400 font-medium">{objData.vertices.length}</div>
-            <div className="text-white/30">Vertices</div>
-          </div>
-          <div className="text-center">
-            <div className="text-purple-400 font-medium">{objData.faces.length}</div>
-            <div className="text-white/30">Faces</div>
-          </div>
-          <div className="text-center">
-            <div className="text-indigo-400 font-medium">{(result.metadata.size as number / 1024).toFixed(1)}KB</div>
-            <div className="text-white/30">File Size</div>
-          </div>
-        </div>
-      )}
-
-      {/* Metadata from file processor */}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px] text-white/40">
-        {result.metadata.vertices !== undefined && (
-          <MetadataRow label="Vertices" value={String(result.metadata.vertices)} />
-        )}
-        {result.metadata.faces !== undefined && (
-          <MetadataRow label="Faces" value={String(result.metadata.faces)} />
-        )}
-        {result.metadata.normals !== undefined && (
-          <MetadataRow label="Normals" value={String(result.metadata.normals)} />
-        )}
-        {result.metadata.triangles !== undefined && (
-          <MetadataRow label="Triangles" value={String(result.metadata.triangles)} />
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-2 mt-2">
-        {isObj && (
-          <button
-            onClick={handleShowRaw}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] hover:bg-indigo-500/20 transition-colors"
-          >
-            <Code2 className="w-3 h-3" />
-            View RAW
-          </button>
-        )}
-        <span className="text-[10px] text-white/20">
-          {String(result.metadata.note || 'Full 3D preview requires WebGL')}
-        </span>
-      </div>
-
-      {/* Raw OBJ Content Modal */}
-      {showRaw && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex flex-col"
-          onClick={() => setShowRaw(false)}
-        >
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
-            <span className="text-white/60 text-sm">OBJ File Contents</span>
-            <button
-              onClick={() => setShowRaw(false)}
-              className="p-2 rounded-lg bg-white/10 text-white/60 hover:bg-white/20 transition-colors"
-            >
-              <span className="text-xl">&times;</span>
-            </button>
-          </div>
-          <pre className="flex-1 p-4 overflow-auto text-[10px] text-green-400/80 font-mono whitespace-pre">
-            {rawContent}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function FontPreview({ result }: { result: ProcessingResult }) {
   const fontType = String(result.metadata.fontType || result.metadata.format);

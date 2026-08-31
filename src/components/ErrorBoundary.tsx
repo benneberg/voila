@@ -52,10 +52,14 @@ export class ErrorBoundary extends Component<Props, State> {
     this.props.onError?.(error, errorInfo);
 
     // Send to Sentry if available globally
-    if (typeof window !== 'undefined' && (window as { Sentry?: { captureException: (e: Error, ctx: object) => void } }).Sentry) {
-      (window as { Sentry: { captureException: (e: Error, ctx: object) => void } }).Sentry.captureException(error, {
-        extra: { componentStack: errorInfo.componentStack, errorId: this.state.errorId },
-      });
+    if (typeof window !== 'undefined') {
+      type SentryWindow = { Sentry?: { captureException: (e: Error, ctx: object) => void } };
+      const w = window as unknown as SentryWindow;
+      if (w.Sentry) {
+        w.Sentry.captureException(error, {
+          extra: { componentStack: errorInfo.componentStack, errorId: this.state.errorId },
+        });
+      }
     }
   }
 
@@ -120,7 +124,7 @@ export class ErrorBoundary extends Component<Props, State> {
         </div>
 
         {/* Error detail (collapsed in prod) */}
-        {import.meta.env.DEV && (
+        {(typeof process === "undefined" || process.env.NODE_ENV !== "production") && (
           <details className="w-full max-w-lg rounded-lg border border-red-200 bg-red-50 p-4 text-left dark:border-red-800 dark:bg-red-950">
             <summary className="cursor-pointer text-sm font-medium text-red-700 dark:text-red-300">
               Error details (dev only)

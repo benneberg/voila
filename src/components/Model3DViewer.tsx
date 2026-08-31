@@ -4,10 +4,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import {
-  Box, RotateCw, ZoomIn, ZoomOut, Move, Eye, EyeOff,
-  Settings, Download, Loader2, Maximize2, Minimize2, Grid3x3
+  Box, RotateCw, ZoomIn, ZoomOut, Eye, EyeOff,
+  Loader2, Maximize2, Minimize2, Grid3x3
 } from 'lucide-react';
 import * as THREE from 'three';
 import type { ProcessingResult } from '../lib/fileProcessor';
@@ -302,9 +301,8 @@ export function Model3DViewer({ result }: Model3DViewerProps) {
     return createPlaceholderModel();
   };
 
-  const loadGLTFJSON = async (url: string): Promise<THREE.Group> => {
+  const loadGLTFJSON = async (_url: string): Promise<THREE.Group> => {
     // Fetch and parse GLTF JSON
-    const json = await fetch(url).then(r => r.json());
 
     // Create basic mesh from GLTF primitives
     const geometry = new THREE.BoxGeometry(1, 1, 1);

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload,
   Shield,
-  Zap,
   Eye,
   ChevronRight,
   ChevronLeft,
