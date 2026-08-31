@@ -81,8 +81,10 @@ if (!Blob.prototype.arrayBuffer) {
 }
 
 // Polyfill TextEncoder/TextDecoder for jsdom
-import { TextEncoder, TextDecoder } from 'util';
+import { TextEncoder, TextDecoder as NodeTextDecoder } from 'util';
 if (typeof global.TextEncoder === 'undefined') {
-  (global as typeof globalThis & { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
-  (global as typeof globalThis & { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder as typeof globalThis['TextDecoder'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).TextEncoder = TextEncoder;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).TextDecoder = NodeTextDecoder;
 }
