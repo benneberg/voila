@@ -43,7 +43,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    target: 'esnext',
     include: ['react', 'react-dom', 'framer-motion', 'lucide-react'],
   }
 });
