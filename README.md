@@ -1,279 +1,239 @@
-# Voila! - Universal File Handler
+# Voila! — Universal File Inspector
 
-> A universal file handler that masks a massively complex, multi-modal distributed system behind a single, ultra-minimalist user interface.
+Drop any file. Understand it instantly.
 
-[![CI](https://github.com/benneberg/voila/actions/workflows/ci.yml/badge.svg)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+Voila! identifies files by their content (magic bytes, not extensions), routes them to the appropriate processing tier, and renders a contextual preview — from images and 3D models to executables and data files.
 
 ---
 
-## Features
+## What it does
 
-- **Magic Number Detection** - Identifies file types by content, not extension
-- **Corruption Detection** - Warns about damaged files before opening
-- **Tiered Processing** - Routes files to appropriate processing environment:
-  - **Tier 1 (Browser)** - WASM-based processing (images, video, audio, code)
-  - **Tier 2 (Docker)** - Heavy lifting (archives, documents, data)
-  - **Tier 3 (Firecracker)** - Sandboxed execution for executables
-- **AI Code Explanations** - GPT-powered code analysis with Redis caching
-- **Expert Panel** - Toggle deep technical metadata for power users
-- **Multi-format Support** - 100+ file formats via magic number signatures
+| Capability | Status |
+|---|---|
+| Magic number detection — 46+ formats, 9 categories | ✅ Implemented |
+| Extension / content mismatch detection | ✅ Implemented |
+| File corruption checks (JPEG, PDF) | ✅ Implemented |
+| Image preview — zoom, fullscreen, EXIF metadata | ✅ Implemented |
+| Code preview — Monaco editor, syntax highlighting, 20+ languages | ✅ Implemented |
+| Python execution in the browser (Pyodide WASM) | ✅ Implemented |
+| PDF rendering (PDF.js) | ✅ Implemented |
+| 3D model viewer — OBJ, STL, GLTF/GLB (Three.js) | ✅ Implemented |
+| Audio waveform preview (WaveSurfer.js) | ✅ Implemented |
+| Video preview | ✅ Implemented |
+| Expert metadata panel | ✅ Implemented |
+| Filename spell-checking | ✅ Implemented |
+| AI code explanations (GPT-4o-mini) | ⚙️ Demo mode — requires `OPENAI_API_KEY` |
+| Tier 2 deep extraction (Apache Tika) | ⚙️ Demo mode — requires deployed Tika |
+| Tier 3 sandboxed execution (Firecracker) | 🗺️ Roadmap — routing exists, VMs not yet implemented |
 
-## Tech Stack
+Files are processed locally in the browser (Tier 1) for most formats. Nothing leaves your machine unless you configure and deploy the backend.
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, TypeScript, Vite, TailwindCSS |
-| Animation | Framer Motion |
-| 3D Rendering | Three.js |
-| Code Editor | Monaco Editor (CDN) |
-| PDF Rendering | PDF.js (CDN) |
-| Python Runtime | Pyodide (CDN) |
-| Backend | FastAPI, Python 3.11+ |
-| Caching | Redis |
-| Metadata | Apache Tika |
-| Monitoring | Prometheus, Grafana |
+---
 
-## Installation
+## Architecture overview
+
+Three processing tiers based on file type and size:
+
+```
+File dropped
+     │
+     ▼
+┌─────────────────────────────────┐
+│  Tier 0 — Pre-flight (always)   │
+│  Magic bytes · tier routing     │
+│  Corruption check · spell check │
+└──────────┬──────────────────────┘
+           │
+     ┌─────┴──────┬───────────────┐
+     ▼            ▼               ▼
+  Tier 1       Tier 2          Tier 3
+  Browser      Docker/API      Roadmap
+  ≤ 50 MB      ≤ 500 MB        ≤ 2 GB
+  WASM         Tika            Firecracker
+  Images       Archives        Executables
+  Code         Documents       ELF/DLL
+  Audio/Video  Data files
+  PDF / 3D
+```
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for component details, data flow, and security boundaries.
+
+---
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18+
-- Python 3.11+
-- Docker & Docker Compose (for backend)
+- Node.js 20+
+- Python 3.11+ (backend only)
+- Docker & Docker Compose (full stack only)
 
-### Frontend Setup
+### Frontend only (no backend needed)
 
 ```bash
-# Clone and install
-cd voila-demo
-npm install
-
-# Start development server
+git clone https://github.com/benneberg/voila
+cd voila
+npm install --legacy-peer-deps
 npm run dev
+# Open http://localhost:5173
 ```
 
-### Backend Setup
+The frontend runs fully in demo mode without the backend. File processing happens in the browser via WASM.
+
+### Full stack (with backend)
 
 ```bash
-# Navigate to backend
-cd backend
+# Copy and fill in the environment template
+cp .env.production.template .env
+# Edit .env — at minimum set SECRET_KEY and CORS_ORIGINS
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-
-# Install dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-
-# Start Redis (for caching)
-docker run -d -p 6379:6379 redis:alpine
-
-# Run development server
-uvicorn main:app --reload --port 8000
-```
-
-### Full Stack (Docker Compose)
-
-```bash
 # Start all services
 docker-compose up -d
 
 # Services:
-# - voila-api: http://localhost:8000
-# - redis: localhost:6379
-# - tika: http://localhost:9998
-# - prometheus: http://localhost:9090
-# - grafana: http://localhost:3000
+#   Frontend (via nginx):  http://localhost:80
+#   Backend API:           http://localhost:8000
+#   API docs:              http://localhost:8000/docs
+#   Prometheus:            http://localhost:9090
+#   Grafana:               http://localhost:3000
 ```
 
-## Usage
-
-### Development
-
-```bash
-# Frontend (port 5173)
-npm run dev
-
-# Backend (port 8000)
-cd backend && uvicorn main:app --reload
-
-# Backend API docs
-# http://localhost:8000/docs
-```
-
-### Production Build
-
-```bash
-npm run build
-npm run preview
-```
-
-## Testing
-
-### Frontend Tests
-
-```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-
-# CI mode (with thresholds)
-npm run test:ci
-```
-
-### Backend Tests
+### Backend only (development)
 
 ```bash
 cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
 
-# Run all tests
-pytest
+# Optional: start Redis for caching
+docker run -d -p 6379:6379 redis:alpine
 
-# With coverage
-pytest --cov=. --cov-report=html
-
-# Specific test file
-pytest tests/test_api.py -v
+# Start server (demo mode works without any env vars)
+uvicorn main:app --reload --port 8000
 ```
-
-## Project Structure
-
-```
-voila-demo/
-├── src/
-│   ├── components/          # React components
-│   │   ├── OmniDrop.tsx     # File upload dropzone
-│   │   ├── FileRenderer.tsx  # Dynamic file preview
-│   │   ├── Model3DViewer.tsx # Three.js 3D viewer
-│   │   ├── ExpertPanel.tsx   # Metadata panel
-│   │   └── PipelineVisualizer.tsx
-│   ├── lib/
-│   │   ├── preflight.ts      # Magic number detection
-│   │   ├── fileProcessor.ts  # File processing
-│   │   ├── spellChecker.ts    # Filename validation
-│   │   └── api.ts            # Backend API client
-│   ├── data/
-│   │   └── file-signatures.json  # Magic number database
-│   └── tests/                # Jest unit tests
-├── backend/
-│   ├── engines/
-│   │   ├── llm_cache.py      # AI response caching
-│   │   └── corruption.py      # File integrity checks
-│   ├── middleware/
-│   │   └── rate_limiter.py    # Rate limiting & cost tracking
-│   ├── tests/                # pytest tests
-│   ├── main.py               # FastAPI application
-│   └── requirements.txt       # Python dependencies
-├── docker-compose.yml         # Full stack deployment
-└── package.json
-```
-
-## Configuration
-
-### Environment Variables
-
-**Frontend** (optional):
-```
-VITE_API_URL=http://localhost:8000
-```
-
-**Backend**:
-```
-PORT=8000
-DEBUG=false
-REDIS_URL=redis://localhost:6379
-OPENAI_API_KEY=your-api-key  # Optional for demo mode
-CORS_ALLOWED_ORIGINS=https://voila.app,https://www.voila.app
-```
-
-### Tier Limits
-
-| Tier | Size Limit | Processing |
-|------|------------|------------|
-| Tier 1 (Browser) | 50 MB | WASM in browser |
-| Tier 2 (Docker) | 500 MB | Cloud processing |
-| Tier 3 (Firecracker) | 2 GB | Sandboxed VMs |
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | API info |
-| GET | `/health` | Health check |
-| POST | `/api/v1/file/upload` | File upload |
-| POST | `/api/v1/metadata/extract` | Extract metadata |
-| POST | `/api/v1/analyze/code` | AI code analysis |
-| POST | `/api/v1/diagnostics/corruption` | Check file corruption |
-| GET | `/api/v1/cost/{ip}` | Get cost for IP |
-
-## Deployment
-
-### Vercel (Frontend)
-
-```bash
-npm run build
-vercel --prod
-```
-
-### AWS ECS (Backend)
-
-1. Build Docker image:
-   ```bash
-   docker build -t voila-api ./backend
-   ```
-
-2. Push to ECR:
-   ```bash
-   aws ecr get-login-password | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.$REGION.amazonaws.com
-   docker tag voila-api:latest $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/voila-api:latest
-   docker push $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/voila-api:latest
-   ```
-
-3. Deploy via ECS or Docker Compose
-
-## Cost Estimation
-
-| Service | Configuration | Monthly Cost |
-|---------|---------------|--------------|
-| CloudFront | 100GB transfer | ~$8.50 |
-| S3 | 20GB storage | $0.46 |
-| ECS Fargate | 2 vCPU, 4GB RAM | $60.00 |
-| ElastiCache | t4g.micro | $12.00 |
-| EC2 Spot | VM pool | ~$45.00 |
-| OpenAI | 50K cached requests | $10.00 |
-| Misc | CloudWatch, Route 53 | $5.50 |
-| **Total** | | **~$123.00/month** |
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Acknowledgments
-
-- [Apache Tika](https://tika.apache.org/) - Deep metadata extraction
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) - Code editing
-- [Pyodide](https://pyodide.org/) - Python in the browser
-- [Three.js](https://threejs.org/) - 3D rendering
 
 ---
 
-**Built with the philosophy:** *Super minimalism meets extreme capability.*
+## Configuration
+
+Copy `.env.production.template` to `.env` and fill in values. The only required variable for local development is none — the backend starts in demo mode without any configuration.
+
+Key variables:
+
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `SECRET_KEY` | Production | — | Signs URLs; generate with `openssl rand -hex 32` |
+| `OPENAI_API_KEY` | Optional | — | Enables AI code explanations |
+| `REDIS_URL` | Optional | in-memory | Caching and rate limiting |
+| `CORS_ORIGINS` | Production | — | Comma-separated allowed origins |
+| `VITE_API_URL` | Optional | `http://localhost:8000` | Backend URL for frontend |
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Vite 8, TailwindCSS |
+| 3D | Three.js (bundled) |
+| Code editor | Monaco Editor (CDN) |
+| PDF | PDF.js (CDN) |
+| Python runtime | Pyodide (CDN) |
+| Audio | WaveSurfer.js (CDN) |
+| Backend | FastAPI, Python 3.11 |
+| Caching | Redis (optional) |
+| Metadata | Apache Tika (optional) |
+| Observability | Prometheus, Grafana |
+| CI/CD | GitHub Actions |
+| Serving | nginx (production) |
+
+---
+
+## Testing
+
+```bash
+# Frontend unit tests (81 tests)
+npm test
+
+# Frontend with coverage
+npm run test:coverage
+
+# Backend tests (27 tests)
+cd backend && pytest tests/ -v
+```
+
+CI runs on every push and pull request. See `.github/workflows/ci.yml`.
+
+---
+
+## Project structure
+
+```
+voila/
+├── src/
+│   ├── components/           # React components
+│   │   ├── OmniDrop.tsx      # File drop zone
+│   │   ├── FileRenderer.tsx  # 12-type preview renderer
+│   │   ├── Model3DViewer.tsx # Three.js 3D viewer
+│   │   ├── ExpertPanel.tsx   # Deep metadata panel
+│   │   ├── ErrorBoundary.tsx # React error boundary
+│   │   └── PipelineVisualizer.tsx
+│   ├── lib/
+│   │   ├── preflight.ts      # Magic number detection + tier routing
+│   │   ├── fileProcessor.ts  # Per-type processing pipeline
+│   │   ├── spellChecker.ts   # Filename spell-checker
+│   │   └── api.ts            # Backend API client
+│   ├── data/
+│   │   └── file-signatures.json  # 46 magic-byte signatures
+│   └── tests/                # Jest unit tests
+├── backend/
+│   ├── engines/
+│   │   ├── llm_cache.py      # AI response caching (Redis)
+│   │   └── corruption.py     # File integrity checks
+│   ├── middleware/
+│   │   └── rate_limiter.py   # Rate limiting and cost tracking
+│   ├── tests/                # pytest suite
+│   └── main.py               # FastAPI application
+├── monitoring/
+│   ├── prometheus.yml         # Scrape config
+│   ├── alerts.yml             # 9 alerting rules
+│   └── grafana/               # Provisioned dashboards
+├── deploy/
+│   ├── nginx.conf             # SPA routing + API proxy
+│   └── start.sh               # Combined entrypoint
+├── .github/workflows/ci.yml   # CI/CD pipeline
+├── docker-compose.yml          # Full production stack
+├── Dockerfile                  # Multi-stage build
+├── .env.production.template    # Environment reference
+└── ARCHITECTURE.md
+```
+
+---
+
+## API endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | API version info |
+| `GET` | `/health` | Service health (includes Redis/OpenAI/Tika status) |
+| `POST` | `/api/v1/file/upload` | Upload file, get hash + metadata |
+| `POST` | `/api/v1/metadata/extract` | Extract metadata from file hash |
+| `POST` | `/api/v1/analyze/code` | AI code explanation (requires API key) |
+| `POST` | `/api/v1/diagnostics/corruption` | Corruption check |
+
+Full interactive docs at `http://localhost:8000/docs` when the backend is running.
+
+---
+
+## Contributing
+
+1. Fork and clone
+2. Create a feature branch
+3. Run `npm test` and `cd backend && pytest` — both must pass
+4. Open a pull request
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE)
