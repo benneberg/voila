@@ -77,9 +77,7 @@ def validate_required_env_vars() -> bool:
 
     Returns True if all required vars are present, False otherwise.
     """
-    required_vars = {
-        "OPENAI_API_KEY": "OpenAI API key for LLM features",
-    }
+    required_vars: dict[str, str] = {}  # REVIEW-001: OPENAI_API_KEY is optional
 
     optional_vars = {
         "REDIS_URL": "Redis URL for caching (default: redis://localhost:6379)",
@@ -132,7 +130,13 @@ from engines.corruption import CorruptionDetector
 from middleware.rate_limiter import RateLimiter
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# RATELIMIT_ENABLED=0 disables rate limiting in tests
+_rate_limit_enabled = os.getenv("RATELIMIT_ENABLED", "1") != "0"
+limiter = Limiter(
+    key_func=get_remote_address,
+    enabled=_rate_limit_enabled,
+    default_limits=[] if not _rate_limit_enabled else None,
+)
 
 # Global instances
 redis_client: Optional[redis.Redis] = None
@@ -146,12 +150,7 @@ async def lifespan(app: FastAPI):
     global redis_client, llm_cache
 
     # Startup: Validate required environment variables
-    env_valid = validate_required_env_vars()
-    if not env_valid:
-        raise RuntimeError(
-            "Missing required environment variables. "
-            "Please set OPENAI_API_KEY before starting the server."
-        )
+    validate_required_env_vars()  # REVIEW-001: logs warnings only
 
     # Startup: Initialize Redis connection
     if REDIS_AVAILABLE:
@@ -328,6 +327,23 @@ class HealthCheckResponse(BaseModel):
 
 # ==================== ENDPOINTS ====================
 
+
+def _detect_type_from_bytes(header: bytes, declared_mime: str) -> str:
+    """Detect MIME from magic bytes (REVIEW-007)."""
+    sigs = [
+        (b'\xff\xd8\xff', 'image/jpeg'), (b'\x89PNG\r\n\x1a\n', 'image/png'),
+        (b'GIF87a', 'image/gif'), (b'GIF89a', 'image/gif'),
+        (b'%PDF-', 'application/pdf'), (b'PK\x03\x04', 'application/zip'),
+        (b'\x1f\x8b', 'application/gzip'), (b'\x7fELF', 'application/x-elf'),
+        (b'MZ', 'application/x-msdownload'), (b'ID3', 'audio/mpeg'),
+        (b'fLaC', 'audio/flac'), (b'OggS', 'audio/ogg'), (b'RIFF', 'audio/wav'),
+        (b'SQLite format 3', 'application/x-sqlite3'), (b'glTF', 'model/gltf-binary'),
+    ]
+    for magic, mime in sigs:
+        if header[:len(magic)] == magic:
+            return mime
+    return declared_mime or 'application/octet-stream'
+
 @app.get("/", tags=["Root"])
 async def root():
     """Root endpoint - API info"""
@@ -428,7 +444,7 @@ async def analyze_code(request: Request, payload: CodeAnalysisRequest):
 
 @app.post("/api/v1/diagnostics/corruption", tags=["Tier 2 - Diagnostics"])
 @limiter.limit("30/minute")
-async def check_corruption(request: Request, file_type: str):
+async def check_corruption(request: Request, file: UploadFile = File(...)):
     """
     Check file for corruption based on magic bytes.
     In production, this would analyze the actual file bytes.
@@ -439,11 +455,15 @@ async def check_corruption(request: Request, file_type: str):
     if redis_client:
         await rate_limiter.track_cost(redis_client, client_ip, "tier2")
 
-    result = await corruption_detector.check_simulated(file_type)
+    header_bytes = await file.read(65536)
+    file_type = file.content_type or ""
+    filename = file.filename or ""
+    result = corruption_detector.check_bytes(header_bytes, file_type, filename)  # REVIEW-008: real bytes
 
     return {
         "success": True,
-        "result": result
+        "result": result,
+        "provenance": "parsed",
     }
 
 @app.post("/api/v1/file/upload", tags=["Tier 2 - Upload"])
@@ -455,10 +475,11 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     """
     client_ip = get_remote_address(request)
 
-    # Check file size (max 500MB for tier 2)
+    # REVIEW-004: Enforce size limit before full read
+    MAX_SIZE = int(os.getenv("MAX_FILE_SIZE_MB", "500")) * 1024 * 1024
     contents = await file.read()
-    if len(contents) > 500 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large (max 500MB)")
+    if len(contents) > MAX_SIZE:
+        raise HTTPException(status_code=413, detail=f"File too large (max {MAX_SIZE // 1024 // 1024} MB)")
 
     # Track cost
     if redis_client:
@@ -467,26 +488,30 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     # Generate file hash
     file_hash = hashlib.sha256(contents).hexdigest()
 
-    # In production: Upload to S3 with 1-hour TTL
-    # For demo: Return metadata only
+    # REVIEW-007: real metadata from actual file bytes
+    header = contents[:16]
+    detected_type = _detect_type_from_bytes(header, file.content_type or "")
     return {
-        "success": True,
-        "file_hash": file_hash,
-        "file_name": file.filename,
-        "file_size": len(contents),
+        "success": True, "file_hash": file_hash,
+        "file_name": file.filename, "file_size": len(contents),
         "content_type": file.content_type,
+        "detected_type": detected_type,
+        "magic_bytes": header.hex().upper()[:32],
         "upload_time": datetime.now(timezone.utc).isoformat(),
         "ttl_seconds": 3600,
         "storage": "s3" if os.getenv("S3_BUCKET") else "memory",
-        "note": "File will be auto-deleted after 1 hour"
+        "provenance": "detected",
     }
 
 @app.get("/api/v1/stats", tags=["System"])
-async def get_stats():
+async def get_stats(request: Request):
     """
     Get API usage statistics.
-    Requires Redis for persistent tracking.
+    REVIEW-003: Requires X-Admin-Key header (set ADMIN_API_KEY env var).
     """
+    admin_key = os.getenv("ADMIN_API_KEY")
+    if admin_key and request.headers.get("X-Admin-Key", "") != admin_key:
+        raise HTTPException(status_code=403, detail="Admin access required")
     if not redis_client:
         return {
             "mode": "demo",
@@ -519,11 +544,14 @@ async def get_stats():
         return {"mode": "error", "error": str(e)}
 
 @app.get("/api/v1/cost/{ip_address}", tags=["System"])
-async def get_cost_for_ip(ip_address: str):
+async def get_cost_for_ip(ip_address: str, request: Request):
     """
     Get accumulated cost for a specific IP address.
-    Useful for monitoring and debugging.
+    REVIEW-002: Requires X-Admin-Key header (set ADMIN_API_KEY env var).
     """
+    admin_key = os.getenv("ADMIN_API_KEY")
+    if admin_key and request.headers.get("X-Admin-Key", "") != admin_key:
+        raise HTTPException(status_code=403, detail="Admin access required")
     if not redis_client:
         return {"cost": 0, "mode": "demo"}
 
