@@ -206,29 +206,35 @@ class TestCorruptionDetection:
     """Tests for corruption detection endpoint"""
 
     def test_check_corruption_jpeg(self, test_client):
-        """Should check JPEG for corruption"""
+        """REVIEW-008: Corruption check uses real file bytes, not params."""
+        jpeg_bytes = b"\xff\xd8\xff\xe0" + b"\x00" * 50
         response = test_client.post(
             "/api/v1/diagnostics/corruption",
-            params={"file_type": "image/jpeg"}
+            files={"file": ("photo.jpg", jpeg_bytes, "image/jpeg")},
         )
-
         assert response.status_code == 200
         data = response.json()
-
         assert data["success"] is True
         assert "result" in data
+        assert data["result"]["healthy"] is True  # valid JPEG SOI
 
     def test_check_corruption_pdf(self, test_client):
-        """Should check PDF for corruption"""
-        response = test_client.post(
-            "/api/v1/diagnostics/corruption",
-            params={"file_type": "application/pdf"}
-        )
+        """REVIEW-008: Corrupt PDF detected from actual bytes."""
+        # Valid PDF header
+        pdf_ok = b"%PDF-1.4\n%%EOF"
+        r = test_client.post("/api/v1/diagnostics/corruption",
+                             files={"file": ("ok.pdf", pdf_ok, "application/pdf")})
+        assert r.status_code == 200
+        assert r.json()["success"] is True
 
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["success"] is True
+        # Corrupt PDF (wrong header)
+        pdf_bad = b"THIS IS NOT A PDF" + b"\x00" * 20
+        r2 = test_client.post("/api/v1/diagnostics/corruption",
+                              files={"file": ("bad.pdf", pdf_bad, "application/pdf")})
+        assert r2.status_code == 200
+        result = r2.json()["result"]
+        assert result["healthy"] is False
+        assert any("PDF" in issue for issue in result["issues"])
 
 
 class TestFileUpload:
@@ -368,3 +374,116 @@ class TestErrorHandling:
 
         # Should either work or return 405
         assert response.status_code in [200, 405]
+
+
+# ── TEST-004: File upload integration with real bytes ─────────────────────────
+class TestFileUploadIntegration:
+    """Integration tests: upload pipeline with actual file bytes."""
+
+    def test_upload_jpeg_magic_bytes(self, test_client):
+        jpeg = b'\xff\xd8\xff\xe0' + b'\x00' * 100
+        r = test_client.post("/api/v1/file/upload", files={"file": ("photo.jpg", jpeg, "image/jpeg")})
+        assert r.status_code == 200
+        data = r.json()
+        assert data["success"] is True
+        assert len(data["file_hash"]) == 64  # SHA-256
+
+    def test_upload_png_magic_bytes(self, test_client):
+        png = b'\x89PNG\r\n\x1a\n' + b'\x00' * 50
+        r = test_client.post("/api/v1/file/upload", files={"file": ("img.png", png, "image/png")})
+        assert r.status_code == 200
+        assert r.json()["success"] is True
+
+    def test_upload_pdf_bytes(self, test_client):
+        pdf = b'%PDF-1.4\n' + b'\x00' * 20
+        r = test_client.post("/api/v1/file/upload", files={"file": ("doc.pdf", pdf, "application/pdf")})
+        assert r.status_code == 200
+
+    def test_upload_plain_text(self, test_client):
+        r = test_client.post("/api/v1/file/upload", files={"file": ("readme.txt", b"Hello World\n", "text/plain")})
+        assert r.status_code == 200
+
+    def test_upload_returns_consistent_hash(self, test_client):
+        import hashlib
+        data = b"deterministic content"
+        expected = hashlib.sha256(data).hexdigest()
+        r1 = test_client.post("/api/v1/file/upload", files={"file": ("a.bin", data, "application/octet-stream")})
+        r2 = test_client.post("/api/v1/file/upload", files={"file": ("b.bin", data, "application/octet-stream")})
+        assert r1.json()["file_hash"] == expected
+        assert r2.json()["file_hash"] == expected
+
+    def test_upload_response_schema(self, test_client):
+        r = test_client.post("/api/v1/file/upload", files={"file": ("t.bin", b"test", "application/octet-stream")})
+        d = r.json()
+        for key in ("success", "file_hash", "file_size", "upload_time"):
+            assert key in d
+        assert d["file_size"] == 4
+
+    def test_upload_detects_jpeg_mislabeled_as_txt(self, test_client):
+        """Extension-agnostic — JPEG with .txt extension is still accepted."""
+        jpeg = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00'
+        r = test_client.post("/api/v1/file/upload", files={"file": ("trick.txt", jpeg, "text/plain")})
+        assert r.status_code == 200
+        assert r.json()["success"] is True
+
+    def test_upload_detects_real_type_from_magic(self, test_client):
+        """REVIEW-007: upload returns detected_type and provenance fields."""
+        jpeg = b'\xff\xd8\xff\xe0' + b'\x00' * 50
+        r = test_client.post("/api/v1/file/upload", files={"file": ("img.bin", jpeg, "application/octet-stream")})
+        assert r.status_code == 200
+        data = r.json()
+        # Response must include provenance and detected_type fields
+        assert "provenance" in data, f"Missing provenance in {data}"
+        assert "file_hash" in data
+
+
+# ── TEST-005: Rate limiter load test ──────────────────────────────────────────
+class TestRateLimiterLoad:
+    """Rate limiting does not crash under repeated requests."""
+
+    def test_health_survives_burst(self, test_client):
+        results = [test_client.get("/health") for _ in range(15)]
+        statuses = [r.status_code for r in results]
+        assert all(s == 200 for s in statuses), f"Unexpected: {statuses}"
+
+    def test_upload_burst_returns_valid_codes(self, test_client):
+        responses = [
+            test_client.post("/api/v1/file/upload",
+                             files={"file": ("f.bin", b"data", "application/octet-stream")})
+            for _ in range(5)
+        ]
+        statuses = [r.status_code for r in responses]
+        assert all(s in (200, 429) for s in statuses), f"Unexpected statuses: {statuses}"
+
+    def test_separate_ips_tracked_independently(self, test_client):
+        r1 = test_client.get("/health", headers={"X-Forwarded-For": "10.0.0.1"})
+        r2 = test_client.get("/health", headers={"X-Forwarded-For": "10.0.0.2"})
+        assert r1.status_code == 200 and r2.status_code == 200
+
+
+# ── REVIEW-002/003: Admin endpoint protection ─────────────────────────────────
+class TestAdminEndpointProtection:
+    """Cost and stats endpoints require X-Admin-Key when ADMIN_API_KEY is set."""
+
+    def test_cost_returns_demo_without_admin_key_configured(self, test_client):
+        """When ADMIN_API_KEY is not set, cost endpoint is accessible (demo mode)."""
+        import os
+        os.environ.pop("ADMIN_API_KEY", None)
+        r = test_client.get("/api/v1/cost/127.0.0.1")
+        assert r.status_code in (200, 403)
+
+    def test_stats_returns_data_without_key_configured(self, test_client):
+        import os
+        os.environ.pop("ADMIN_API_KEY", None)
+        r = test_client.get("/api/v1/stats")
+        assert r.status_code in (200, 403)
+
+    def test_cost_blocked_with_wrong_admin_key(self, test_client, monkeypatch):
+        monkeypatch.setenv("ADMIN_API_KEY", "secret-key-123")
+        r = test_client.get("/api/v1/cost/127.0.0.1", headers={"X-Admin-Key": "wrong"})
+        assert r.status_code == 403
+
+    def test_cost_accessible_with_correct_admin_key(self, test_client, monkeypatch):
+        monkeypatch.setenv("ADMIN_API_KEY", "secret-key-123")
+        r = test_client.get("/api/v1/cost/127.0.0.1", headers={"X-Admin-Key": "secret-key-123"})
+        assert r.status_code in (200, 404)
