@@ -98,6 +98,12 @@ export interface SuggestionResult {
 }
 
 // ── SpellChecker class ────────────────────────────────────────────────────────
+/**
+ * Levenshtein-distance-based spell checker for filenames and code vocabulary.
+ * @example
+ * const sc = new SpellChecker();
+ * sc.suggest("helllo"); // { isCorrect: false, suggestions: ["hello"] }
+ */
 export class SpellChecker {
   private customWords: Set<string> = new Set();
 
@@ -132,6 +138,11 @@ export class SpellChecker {
 }
 
 // ── Filename spell-check function (used by App.tsx) ───────────────────────────
+/**
+ * Check whether the extension of a filename is a known file format.
+ * Uses Levenshtein distance to suggest corrections for unknown extensions.
+ * @param filename - Full filename e.g. "document.pdff"
+ */
 export function checkFilenameSpelling(filename: string): SpellCheckResult {
   const parts = filename.split('.');
   if (parts.length < 2) {

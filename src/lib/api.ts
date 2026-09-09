@@ -53,7 +53,12 @@ interface StatsResponse {
 }
 
 // Configuration - use environment variable or default
-const API_BASE_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || '/api';
+/** Safe AbortSignal.timeout — gracefully absent in some Node.js test environments */
+function safeAbortSignal(ms: number): AbortSignal | undefined {
+  try { return AbortSignal.timeout(ms); } catch { return undefined; }
+}
+
+const API_BASE_URL = (typeof process !== 'undefined' && (process.env as Record<string,string>)['VITE_API_URL']) || '/api';
 
 class VoilaApiClient {
   private baseUrl: string;
@@ -82,7 +87,7 @@ class VoilaApiClient {
       const response = await fetch(`${this.baseUrl}/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000)
+        signal: safeAbortSignal(5000)
       });
 
       if (response.ok) {
@@ -106,7 +111,7 @@ class VoilaApiClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language }),
-        signal: AbortSignal.timeout(30000)
+        signal: safeAbortSignal(30000)
       });
 
       if (response.ok) {
@@ -178,7 +183,7 @@ class VoilaApiClient {
       const response = await fetch(`${this.baseUrl}/api/v1/cost/${ipAddress}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000)
+        signal: safeAbortSignal(5000)
       });
 
       if (response.ok) {
@@ -199,7 +204,7 @@ class VoilaApiClient {
       const response = await fetch(`${this.baseUrl}/api/v1/stats`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000)
+        signal: safeAbortSignal(5000)
       });
 
       if (response.ok) {
@@ -223,7 +228,7 @@ class VoilaApiClient {
       const response = await fetch(`${this.baseUrl}/api/v1/file/upload`, {
         method: 'POST',
         body: formData,
-        signal: AbortSignal.timeout(60000)
+        signal: safeAbortSignal(60000)
       });
 
       if (response.ok) {
@@ -251,7 +256,7 @@ class VoilaApiClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_type: fileType }),
-        signal: AbortSignal.timeout(10000)
+        signal: safeAbortSignal(10000)
       });
 
       if (response.ok) {

@@ -1,4 +1,10 @@
 // ─── Client-Side File Processing Engine (Tier 1) ───
+// REVIEW-013: RFC 4180-compliant CSV via papaparse
+// REVIEW-014: Standards-compliant YAML via js-yaml
+import Papa from 'papaparse';
+import * as jsYaml from 'js-yaml';
+import { PROVENANCE } from '../constants';
+
 // Processes files entirely in the browser using Web APIs and WASM
 
 export interface ProcessingResult {
@@ -52,6 +58,11 @@ const LANGUAGE_MAP: Record<string, string> = {
 };
 
 // ─── Main Processing Function ───
+/**
+ * Entry point for Tier 1 file processing. Detects category and routes to handler.
+ * @param file - The File to process
+ * @param category - Pre-determined file category from magic number detection
+ */
 export async function processFile(file: File, category: string): Promise<ProcessingResult> {
   const start = performance.now();
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -259,7 +270,7 @@ async function processConfig(file: File, ext: string, start: number): Promise<Pr
     if (ext === 'json') {
       JSON.parse(content); // validate only — result not used
     } else if (ext === 'yaml' || ext === 'yml') {
-      parseSimpleYaml(content); // validate only — result not used
+      parseYaml(content); // validate only — result not used
     }
   } catch (e) {
     validationError = String(e);
@@ -284,18 +295,12 @@ async function processConfig(file: File, ext: string, start: number): Promise<Pr
   };
 }
 
-function parseSimpleYaml(content: string): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  const lines = content.split('\n');
-
-  for (const line of lines) {
-    if (line.includes(':')) {
-      const [key, ...valueParts] = line.split(':');
-      result[key.trim()] = valueParts.join(':').trim() || true;
-    }
-  }
-
-  return result;
+/**
+ * Parse YAML using js-yaml (standards-compliant). Replaces key:value heuristic (REVIEW-014).
+ */
+function parseYaml(content: string): Record<string, unknown> {
+  const parsed = jsYaml.load(content);
+  return (typeof parsed === 'object' && parsed !== null) ? parsed as Record<string, unknown> : { value: parsed };
 }
 
 // ─── Text Processing ───
@@ -348,20 +353,28 @@ async function processData(file: File, ext: string, start: number): Promise<Proc
   };
 }
 
+/**
+ * Parse CSV using papaparse — RFC 4180-compliant (REVIEW-013).
+ * Handles quoted fields, embedded commas, and multiline records.
+ */
 async function processCSV(content: string, start: number): Promise<ProcessingResult> {
-  const lines = content.split('\n').filter(l => l.trim());
-  const headers = lines[0]?.split(',').map(h => h.trim().replace(/"/g, '')) || [];
-  const dataRows = lines.slice(1);
-
+  const parsed = Papa.parse<string[]>(content, { header: false, skipEmptyLines: true, dynamicTyping: false });
+  const rows = parsed.data as string[][];
+  const headers = rows[0] ?? [];
+  const dataRows = rows.slice(1);
+  const delimiter = parsed.meta?.delimiter ?? ',';
+  const hasErrors = parsed.errors.length > 0;
   return {
     type: 'data',
     content: content.slice(0, 100000),
     metadata: {
-      totalRows: dataRows.length,
-      totalColumns: headers.length,
-      headers: headers.slice(0, 20).join(', '), // First 20 headers
-      format: 'CSV',
-      size: content.length,
+      totalRows: dataRows.length, totalColumns: headers.length,
+      headers: headers.slice(0, 20).join(', '),
+      delimiter: delimiter === '\t' ? 'tab' : delimiter,
+      hasParseErrors: hasErrors,
+      parseErrors: hasErrors ? parsed.errors.slice(0, 3).map(e => e.message).join('; ') : '',
+      format: 'CSV', parser: 'papaparse (RFC 4180)',
+      provenance: PROVENANCE.PARSED, size: content.length,
       lastModified: new Date().toISOString(),
     },
     processingTime: performance.now() - start,
@@ -508,7 +521,7 @@ async function processSpreadsheet(file: File, ext: string, start: number): Promi
     try {
       const content = await file.text();
       const lines = content.split('\n').filter(l => l.trim());
-      const headers = lines[0]?.split(',').length || 0;
+      const headers = (Papa.parse<string[]>(lines.slice(0,1).join('\n'), {header:false}).data[0] as string[]|undefined)?.length ?? 0;
       metadata = {
         ...metadata,
         rows: lines.length - 1,

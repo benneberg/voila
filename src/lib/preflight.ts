@@ -139,6 +139,11 @@ export interface FileTypeResult {
 }
 
 // ─── Main Detection Function ───
+/**
+ * Detect the true file type by reading magic bytes from the file header.
+ * @param file - The File object to inspect
+ * @returns Detection result including type, mismatch warning, and corruption check
+ */
 export async function detectTrueFileType(file: File): Promise<FileTypeResult> {
   const buffer = await file.slice(0, 8192).arrayBuffer();
   const uint8 = new Uint8Array(buffer);
