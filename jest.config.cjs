@@ -2,22 +2,13 @@
 const config = {
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
-  testMatch: [
-    '<rootDir>/src/**/*.test.{ts,tsx}',
-    '<rootDir>/src/**/*.spec.{ts,tsx}',
-  ],
+  testMatch: ['<rootDir>/src/**/*.test.{ts,tsx}', '<rootDir>/src/**/*.spec.{ts,tsx}'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transform: {
-    '^.+\\.(ts|tsx)$': [
-      'ts-jest',
-      {
-        tsconfig: 'tsconfig.jest.json',
-        useESM: false,
-      },
-    ],
+    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.jest.json', useESM: false }],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
@@ -27,12 +18,7 @@ const config = {
     '!src/**/__mocks__/**',
   ],
   coverageThreshold: {
-    global: {
-      branches: 55,
-      functions: 60,
-      lines: 65,
-      statements: 65,
-    },
+    global: { branches: 60, functions: 65, lines: 70, statements: 70 },
   },
   coverageReporters: ['text', 'lcov', 'html'],
   coverageDirectory: 'coverage',
@@ -43,5 +29,4 @@ const config = {
   resetMocks: false,
   restoreMocks: false,
 };
-
 module.exports = config;

@@ -8,11 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
-  },
+  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   build: {
     outDir: 'dist',
     target: 'esnext',
@@ -20,29 +16,18 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Core React vendor chunk
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'vendor-react';
-          }
-          // Animation library
-          if (id.includes('node_modules/framer-motion')) {
-            return 'vendor-motion';
-          }
-          // Icons library
-          if (id.includes('node_modules/lucide-react')) {
-            return 'vendor-icons';
-          }
-          // Three.js 3D rendering (heavy - lazy load)
-          if (id.includes('node_modules/three')) {
-            return 'vendor-three';
-          }
-          // Monaco Editor is loaded via CDN - no need to bundle
-          // PDF.js is loaded via CDN - no need to bundle
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) return 'vendor-react';
+          if (id.includes('node_modules/framer-motion')) return 'vendor-motion';
+          if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
+          // PERF-001: Three.js in own chunk — only downloaded when Model3DViewer mounts
+          if (id.includes('node_modules/three')) return 'vendor-three';
+          // REVIEW-013/014: parsers chunk
+          if (id.includes('node_modules/papaparse') || id.includes('node_modules/js-yaml')) return 'vendor-parsers';
         },
       },
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'framer-motion', 'lucide-react'],
-  }
+    include: ['react', 'react-dom', 'framer-motion', 'lucide-react', 'papaparse', 'js-yaml'],
+  },
 });

@@ -23,6 +23,9 @@ Planned features are tracked as GitHub issues, not documented here.
 | `lib/spellChecker.ts` | Filename extension spell-checker | Levenshtein distance; `SpellChecker` class + `checkFilenameSpelling` function |
 | `lib/api.ts` | FastAPI client | Wraps fetch; handles demo-mode fallback |
 | `data/file-signatures.json` | Magic-byte signature database | 46 signatures, 9 categories, textPatterns, corruptionRules |
+| `constants/index.ts` | All magic strings and enum constants | TIERS, FILE_CATEGORIES, PROVENANCE, FORMAT_QUALITY, API_ENDPOINTS (QUAL-005) |
+| `utils/format.ts` | Shared formatting utilities | formatBytes, formatDuration, truncate — single source of truth (QUAL-002) |
+| `components/renderers/` | Extracted preview sub-renderers | AudioPreview, VideoPreview, DocumentPreview, DataPreview, SmallPreviews, shared.tsx (QUAL-001) |
 
 ### Backend (`backend/`)
 
@@ -188,5 +191,8 @@ These must hold across changes:
 |---|---|---|
 | `src/lib/` | Jest + ts-jest | Magic number detection, tier routing, spell-checking, file categorisation |
 | `backend/` | pytest | All API endpoints, input validation, security headers, CORS, demo-mode fallback |
-| Components | Not tested | No React Testing Library tests exist yet |
-| Integration | Not tested | No end-to-end tests with real file bytes |
+| `src/components/OmniDrop` | Jest + RTL | Privacy toggle, tier display, file selection, drag-and-drop (TEST-002) |
+| `src/lib/api.ts` | Jest | Health check, code analysis, metadata, upload — all paths including network failure (TEST-003) |
+| `backend/` upload pipeline | pytest | 9 tests with real JPEG/PNG/PDF bytes, hash consistency, schema (TEST-004) |
+| `backend/` rate limiter | pytest | Burst requests, IP isolation (TEST-005) |
+| Integration E2E | Not tested | No browser-level end-to-end tests |

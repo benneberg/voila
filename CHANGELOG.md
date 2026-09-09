@@ -6,7 +6,45 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [Unreleased] — v1.1.0
+
+### Added
+- `src/utils/format.ts` — shared `formatBytes`, `formatDuration`, `truncate` (QUAL-002)
+- `src/constants/index.ts` — `TIERS`, `FILE_CATEGORIES`, `PROVENANCE`, `FORMAT_QUALITY`, `API_ENDPOINTS` (QUAL-005)
+- `src/components/renderers/` — 6 extracted sub-renderer files; FileRenderer.tsx shrunk from 1577 → 719 lines (QUAL-001)
+- `src/components/renderers/shared.tsx` — `MetadataRow`, `MetadataSection`, `ProvenanceBadge`, `highlightSyntax` (REVIEW-011)
+- `eslint.config.mjs` + `.prettierrc` — ESLint and Prettier config (QUAL-006)
+- `src/tests/OmniDrop.test.tsx` — 12 RTL component tests (TEST-002)
+- `src/tests/api.test.ts` — 14 API client tests across all methods (TEST-003)
+- `backend/tests/test_api.py` — 15 new backend tests: upload with real bytes, corruption detection, rate limiter load, admin endpoint protection (TEST-004/005)
+- `backend/engines/corruption.py` — `check_bytes()` method for real byte-level validation (REVIEW-008)
+- `CorruptionDetector.check_bytes()` — JPEG SOI, PDF header/EOF, PNG signature, ZIP magic, ELF magic (REVIEW-008)
+- `_detect_type_from_bytes()` in backend — 16-entry magic byte table for upload metadata (REVIEW-007)
+- OmniDrop privacy notice — tier-specific disclosure with toggle (UX-001)
+- OmniDrop tier indicator — always-visible badge showing Browser/Cloud/VM (UX-002)
+- Build size report step in CI via `$GITHUB_STEP_SUMMARY` (PERF-004)
+- JSDoc on all public lib functions: `detectTrueFileType`, `determineTier`, `SpellChecker`, `checkFilenameSpelling`, `processFile`, `getFileCategory` (QUAL-003)
+
+### Changed
+- `src/lib/fileProcessor.ts` — CSV now uses **papaparse** (RFC 4180-compliant); YAML uses **js-yaml** (REVIEW-013/014)
+- `src/lib/api.ts` — `AbortSignal.timeout()` wrapped for Node.js compatibility; `import.meta.env` replaced with `process.env`
+- `src/components/OmniDrop.tsx` — rewritten with privacy/tier UX improvements
+- `vite.config.ts` — papaparse+js-yaml vendor chunk; `chunkSizeWarningLimit` raised
+- `jest.config.cjs` — coverage thresholds raised to 60/65/70/70 (TEST-006)
+- `backend/main.py` — `OPENAI_API_KEY` no longer required on startup (REVIEW-001)
+- `backend/main.py` — `/api/v1/cost/{ip}` and `/api/v1/stats` now gated by `X-Admin-Key` header (REVIEW-002/003)
+- `backend/main.py` — upload size enforced server-side before full read (REVIEW-004)
+- `backend/main.py` — rate limiter respects `RATELIMIT_ENABLED=0` for test environments
+- `backend/tests/conftest.py` — rate limiting disabled in all tests; corruption tests updated to use real bytes
+
+### Fixed
+- Three.js now lazy-loaded via `React.lazy()` + `Suspense` — only downloads when a 3D file is dropped (PERF-001)
+- Upload endpoint `/api/v1/diagnostics/corruption` now accepts `UploadFile` instead of `file_type` query param (REVIEW-008)
+- All TypeScript strict-mode errors in renderer sub-files resolved
+
+---
+
+## [1.0.0]
 
 ### Added
 - `ErrorBoundary` React component with dev-only stack traces, inline variant, and `withErrorBoundary` HOC
