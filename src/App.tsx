@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Sparkles, Zap, Gauge, Eye, EyeOff, Info, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Sparkles, Gauge, Eye, EyeOff, Info } from 'lucide-react';
 import OmniDrop from './components/OmniDrop';
 import PipelineVisualizer from './components/PipelineVisualizer';
 import FileRenderer from './components/FileRenderer';
