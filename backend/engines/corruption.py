@@ -262,6 +262,38 @@ class CorruptionDetector:
             'is_healthy': len(checks) == 0
         }
 
+
+    def check_bytes(self, data: bytes, mime_type: str, filename: str = "") -> dict:
+        """REVIEW-008: Real byte-level corruption check from actual file bytes."""
+        if len(data) == 0:
+            return {"healthy": False, "issues": ["File is empty"], "severity": "critical",
+                    "bytes_checked": 0, "provenance": "parsed"}
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        issues: list[str] = []
+        warnings: list[str] = []
+        if mime_type == "image/jpeg" or ext in ("jpg", "jpeg"):
+            if data[:2] != b"\xff\xd8":
+                issues.append("Missing JPEG SOI marker (FF D8)")
+        if mime_type == "application/pdf" or ext == "pdf":
+            if data[:5] != b"%PDF-":
+                issues.append("Missing PDF header (%PDF-)")
+            if b"%%EOF" not in data[-1024:]:
+                warnings.append("PDF %%EOF marker not found (may be truncated)")
+        if mime_type == "image/png" or ext == "png":
+            if data[:8] != b"\x89PNG\r\n\x1a\n":
+                issues.append("Invalid PNG signature")
+        if ext in ("zip", "docx", "xlsx", "pptx") or mime_type == "application/zip":
+            if data[:4] not in (b"PK\x03\x04", b"PK\x05\x06"):
+                issues.append("Missing ZIP PK signature")
+        if mime_type == "application/x-elf" or ext == "elf":
+            if data[:4] != b"\x7fELF":
+                issues.append("Missing ELF magic number")
+        return {
+            "healthy": len(issues) == 0, "issues": issues, "warnings": warnings,
+            "severity": "critical" if issues else ("low" if warnings else "none"),
+            "bytes_checked": len(data), "extension": ext, "provenance": "parsed",
+        }
+
     async def check_simulated(self, file_type: str) -> Dict[str, Any]:
         """
         Simulated check for demo purposes (doesn't analyze real bytes)
