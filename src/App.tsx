@@ -167,6 +167,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface-0 text-white relative overflow-hidden">
+      {/* Demo mode banner — shown on GitHub Pages deployment */}
+      {(import.meta as unknown as { env: Record<string, string> }).env['VITE_DEMO_MODE'] === 'true' && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-1.5 bg-voila-600/90 backdrop-blur-sm text-[11px] text-white/80">
+          <span>🌐</span>
+          <span>Live demo — runs <strong>100% in your browser</strong>. No files are uploaded anywhere. For full features including AI analysis, deploy the backend.</span>
+          <a href="https://github.com/benneberg/voila" className="underline hover:text-white ml-1">GitHub ↗</a>
+        </div>
+      )}
+
       {/* Ambient background with enhanced breathing glow */}
       <div className="fixed inset-0 pointer-events-none">
         <motion.div
