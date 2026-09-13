@@ -2,7 +2,7 @@
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/benneberg/voila/main/src/assets/logotype-voila.jpg" alt="Voila!" width="72" height="72" />
+<img src="https://raw.githubusercontent.com/benneberg/voila/main/src/assets/logotype-voila.jpg" alt="Voila!" width="220" height="72" />
 
 # Voila!
 
