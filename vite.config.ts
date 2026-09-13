@@ -7,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
+  // GitHub Pages serves from /voila/ — set base only in demo/pages build
+  base: process.env.VITE_DEMO_MODE === 'true' ? '/voila/' : '/',
   plugins: [react()],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   build: {

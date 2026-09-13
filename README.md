@@ -1,144 +1,128 @@
 <div align="center">
 
+<br/>
+
+<img src="https://raw.githubusercontent.com/benneberg/voila/main/public/voila-logo.svg" alt="Voila!" width="72" height="72" />
+
 # Voila!
 
-### Drop any file. Understand it instantly.
+**Drop any file. Understand it instantly.**
 
-[![CI](https://github.com/benneberg/voila/actions/workflows/ci.yml/badge.svg)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-108%20passing-brightgreen)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-42%20passing-brightgreen)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
+<br/>
+
+[![CI](https://github.com/benneberg/voila/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
+[![Deploy Demo](https://github.com/benneberg/voila/actions/workflows/pages.yml/badge.svg)](https://benneberg.github.io/voila)
+[![Tests](https://img.shields.io/badge/tests-108%20passing-22c55e?logo=jest)](https://github.com/benneberg/voila/actions)
+[![Backend](https://img.shields.io/badge/backend-42%20passing-22c55e?logo=pytest)](https://github.com/benneberg/voila/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
-
-[![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white)](https://react.dev)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.11-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Three.js](https://img.shields.io/badge/Three.js-3D%20viewer-black?logo=threedotjs&logoColor=white)](https://threejs.org)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ed?logo=docker&logoColor=white)](docker-compose.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-f59e0b)](LICENSE)
 
 <br/>
 
-*Super minimalism meets extreme capability.*
+[![React](https://img.shields.io/badge/React_18-61dafb?logo=react&logoColor=black)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Three.js](https://img.shields.io/badge/Three.js-black?logo=threedotjs)](https://threejs.org)
+[![Vite](https://img.shields.io/badge/Vite_8-646cff?logo=vite&logoColor=white)](https://vitejs.dev)
+[![Docker](https://img.shields.io/badge/Docker-2496ed?logo=docker&logoColor=white)](docker-compose.yml)
 
 <br/>
 
-[Live Demo](https://benneberg.github.io/voila) · [Architecture](ARCHITECTURE.md) · [Changelog](CHANGELOG.md)
+**[→ Live Demo](https://benneberg.github.io/voila)** &nbsp;·&nbsp; [Architecture](ARCHITECTURE.md) &nbsp;·&nbsp; [Changelog](CHANGELOG.md)
+
+<br/>
 
 </div>
 
 ---
 
-## What it does
-
-Voila! identifies files by their **actual content** (magic bytes, not the extension), routes them to the right processing tier, and renders a contextual preview — from images and 3D models to executables and data files.
-
-Everything the browser can handle stays in the browser. Nothing leaves your device unless you configure and deploy the backend.
+Voila! identifies files by their **actual content** — reading magic bytes, not trusting extensions. Drop any file and get a contextual preview: images, 3D models, code with execution, audio waveforms, data tables, executables. Everything the browser can handle stays in the browser. Nothing leaves your device unless you explicitly deploy the backend.
 
 ---
 
-## Capabilities
+## Features
 
-| Feature | Status |
+| | Feature |
 |---|---|
-| Magic number detection · 46 formats · 9 categories | ✅ |
-| Extension / content mismatch warning | ✅ |
-| File corruption checks (JPEG, PDF, PNG, ZIP, ELF) | ✅ |
-| Image preview — zoom, fullscreen, EXIF metadata | ✅ |
-| Code editor — Monaco, syntax highlighting, 20+ languages | ✅ |
-| Python execution in the browser (Pyodide WASM) | ✅ |
-| PDF rendering (PDF.js) | ✅ |
-| 3D model viewer — OBJ, STL, GLTF/GLB (Three.js, lazy-loaded) | ✅ |
-| Audio waveform preview (WaveSurfer.js) | ✅ |
-| Video preview with thumbnail extraction | ✅ |
-| RFC 4180-compliant CSV parsing (papaparse) | ✅ |
-| Standards-compliant YAML parsing (js-yaml) | ✅ |
-| Expert metadata panel with provenance labels | ✅ |
-| Privacy-aware tier indicator (browser / cloud / VM) | ✅ |
-| Filename spell-checker | ✅ |
-| AI code explanations (GPT-4o-mini, Redis-cached) | ⚙️ Requires `OPENAI_API_KEY` |
-| Deep metadata extraction (Apache Tika) | ⚙️ Requires deployed Tika |
-| Sandboxed execution (Firecracker VMs) | 🗺️ Roadmap |
+| ✅ | **Magic number detection** — 46 formats, 9 categories |
+| ✅ | **Extension/content mismatch warnings** — detects renamed files |
+| ✅ | **File corruption checks** — JPEG SOI, PDF header/EOF, PNG sig, ZIP magic, ELF |
+| ✅ | **Image preview** — zoom, fullscreen, rotation, EXIF metadata |
+| ✅ | **Code editor** — Monaco, syntax highlighting, 20+ languages |
+| ✅ | **Python execution in-browser** — Pyodide WASM, no server |
+| ✅ | **PDF rendering** — PDF.js, page navigation, zoom |
+| ✅ | **3D model viewer** — OBJ, STL, GLTF/GLB via Three.js (lazy-loaded) |
+| ✅ | **Audio waveform** — WaveSurfer.js visualisation |
+| ✅ | **Video preview** — thumbnail extraction |
+| ✅ | **Tabular data** — RFC 4180 CSV (papaparse), JSON, XML |
+| ✅ | **Expert metadata panel** — provenance-labelled, tier-aware |
+| ✅ | **Privacy indicator** — always shows whether file stays local or goes to server |
+| ✅ | **Filename spell-checker** — Levenshtein correction for extensions |
+| ⚙️ | **AI code explanations** — GPT-4o-mini, Redis-cached · needs `OPENAI_API_KEY` |
+| ⚙️ | **Deep metadata extraction** — Apache Tika · needs deployed Tika |
+| 🗺️ | **Sandboxed execution** — Firecracker VMs · roadmap |
 
 ---
 
-## Architecture
-
-Three processing tiers based on file type and size:
+## How it works
 
 ```
 File dropped
      │
      ▼
 ┌──────────────────────────────────┐
-│  Tier 0 — Pre-flight (always)    │
+│  Pre-flight (always, in-browser) │
 │  Magic bytes · tier routing      │
 │  Corruption check · spell check  │
 └──────────┬───────────────────────┘
            │
-     ┌─────┴────────┬──────────────────┐
-     ▼              ▼                  ▼
-  Tier 1         Tier 2            Tier 3
-  Browser        Docker/API        Roadmap
-  ≤ 50 MB        ≤ 500 MB          ≤ 2 GB
-  WASM           Tika              Firecracker
-  Images         Archives          Executables
-  Code           Documents         ELF / DLL
-  Audio/Video    Data files
-  PDF / 3D
+     ┌─────┴──────────┬──────────────────┐
+     ▼                ▼                  ▼
+  Tier 1           Tier 2            Tier 3
+  Browser WASM     Backend API       Roadmap
+  ≤ 50 MB          ≤ 500 MB          ≤ 2 GB
+  Images · Code    Archives          Executables
+  Audio · Video    Documents         ELF · DLL
+  PDF · 3D         Data files
 ```
 
-Full component breakdown, data flow, and invariants → **[ARCHITECTURE.md](ARCHITECTURE.md)**
+Full component breakdown → **[ARCHITECTURE.md](ARCHITECTURE.md)**
 
 ---
 
-## Getting started
+## Quick start
 
-### Prerequisites
-
-- Node.js 20+
-- Python 3.11+ *(backend only)*
-- Docker + Docker Compose *(full stack only)*
-
-### Frontend only — no backend needed
+### Frontend only — zero config, runs in-browser
 
 ```bash
 git clone https://github.com/benneberg/voila
 cd voila
 npm install --legacy-peer-deps
 npm run dev
-# → http://localhost:5173
 ```
 
-The frontend runs in full demo mode without the backend. All processing happens locally in the browser via WASM.
+Open **http://localhost:5173** — works fully offline, no backend needed.
 
-### Full stack
+### Full stack with Docker
 
 ```bash
-# Copy and fill in the environment template
-cp .env.production.template .env
-# Required: SECRET_KEY, CORS_ORIGINS
-# Optional: OPENAI_API_KEY, REDIS_URL
-
+cp .env.production.template .env   # fill in SECRET_KEY and CORS_ORIGINS
 docker-compose up -d
 ```
 
 | Service | URL |
 |---|---|
-| Frontend (nginx) | http://localhost:80 |
+| App (nginx) | http://localhost |
 | Backend API | http://localhost:8000 |
-| API docs (Swagger) | http://localhost:8000/docs |
+| API docs | http://localhost:8000/docs |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
 
-### Backend only (development)
+### Backend only (dev)
 
 ```bash
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
-
-# Optional Redis
-docker run -d -p 6379:6379 redis:alpine
-
 uvicorn main:app --reload --port 8000
 ```
 
@@ -146,122 +130,123 @@ uvicorn main:app --reload --port 8000
 
 ## Configuration
 
-Copy `.env.production.template` → `.env`. The backend starts in demo mode with no configuration.
+Copy `.env.production.template` to `.env`. The backend starts in demo mode with no config required.
 
-| Variable | Required | Description |
+| Variable | When needed | Description |
 |---|---|---|
 | `SECRET_KEY` | Production | `openssl rand -hex 32` |
 | `OPENAI_API_KEY` | Optional | Enables AI code explanations |
-| `REDIS_URL` | Optional | Caching + rate limiting |
+| `REDIS_URL` | Optional | Caching + rate limiting (falls back to in-memory) |
 | `CORS_ORIGINS` | Production | Comma-separated allowed origins |
-| `VITE_API_URL` | Optional | Backend URL for frontend (default: `/api`) |
-| `ADMIN_API_KEY` | Optional | Protects `/cost` and `/stats` endpoints |
-| `RATELIMIT_ENABLED` | Optional | Set `0` to disable (e.g. in tests) |
+| `ADMIN_API_KEY` | Production | Protects `/cost` and `/stats` endpoints |
+| `VITE_API_URL` | Optional | Backend URL (default: same origin `/api`) |
+| `RATELIMIT_ENABLED` | Testing | Set `0` to disable rate limiting |
 
 ---
 
-## Testing
+## Development
 
 ```bash
-# Frontend — 108 tests
+# Frontend tests (108)
 npm test
 
-# Frontend with coverage report
+# Frontend tests with coverage report
 npm run test:coverage
 
-# Backend — 42 tests
+# Type-check
+npm run typecheck
+
+# Backend tests (42)
 cd backend && pytest tests/ -v
 
-# Type-check only
-npm run typecheck
+# Format code
+npm run format
+
+# Production build
+npm run build
+
+# Demo build (GitHub Pages, client-side only)
+VITE_DEMO_MODE=true npm run build
 ```
 
-Coverage is enforced in CI (60% branches / 65% functions / 70% lines on `src/lib/`).
+CI runs on every push and pull request. See **[.github/workflows/ci.yml](.github/workflows/ci.yml)**.
 
 ---
 
-## Tech stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, TailwindCSS |
-| Animation | Framer Motion |
-| 3D viewer | Three.js (lazy-loaded) |
-| Code editor | Monaco Editor (CDN) |
-| PDF | PDF.js (CDN) |
-| Python runtime | Pyodide (CDN) |
-| Audio | WaveSurfer.js (CDN) |
-| CSV parsing | papaparse (RFC 4180) |
-| YAML parsing | js-yaml |
-| Backend | FastAPI, Python 3.11 |
-| Caching | Redis (optional) |
-| Metadata | Apache Tika (optional) |
-| Observability | Prometheus + Grafana |
-| CI/CD | GitHub Actions |
-| Serving | nginx (production) |
-
----
-
-## Project structure
+## Project layout
 
 ```
 voila/
 ├── src/
 │   ├── components/
+│   │   ├── OmniDrop.tsx              # Drop zone · privacy indicator · tier badge
 │   │   ├── FileRenderer.tsx          # Dispatcher → 12 preview types
-│   │   ├── renderers/                # Extracted sub-renderers (QUAL-001)
-│   │   │   ├── AudioPreview.tsx
-│   │   │   ├── VideoPreview.tsx
-│   │   │   ├── DocumentPreview.tsx
-│   │   │   ├── DataPreview.tsx
-│   │   │   ├── SmallPreviews.tsx
-│   │   │   └── shared.tsx
-│   │   ├── OmniDrop.tsx              # Drop zone with privacy + tier UX
-│   │   ├── Model3DViewer.tsx         # Three.js (lazy-loaded)
-│   │   └── ExpertPanel.tsx           # Deep metadata panel
+│   │   ├── renderers/                # Sub-renderers (Audio, Video, Document, Data…)
+│   │   ├── Model3DViewer.tsx         # Three.js — lazy-loaded
+│   │   ├── ExpertPanel.tsx           # Deep metadata with provenance labels
+│   │   └── ErrorBoundary.tsx
 │   ├── lib/
-│   │   ├── preflight.ts              # Magic number detection + tier routing
+│   │   ├── preflight.ts              # Magic byte detection + tier routing
 │   │   ├── fileProcessor.ts          # Per-type processing pipeline
-│   │   ├── spellChecker.ts           # Filename extension checker
-│   │   └── api.ts                    # Backend API client
-│   ├── constants/index.ts            # TIERS, FILE_CATEGORIES, PROVENANCE
-│   ├── utils/format.ts               # formatBytes, formatDuration
+│   │   ├── spellChecker.ts           # Extension spell-checker
+│   │   └── api.ts                    # Backend client with graceful fallback
+│   ├── constants/index.ts            # TIERS · FILE_CATEGORIES · PROVENANCE
+│   ├── utils/format.ts               # formatBytes · formatDuration
 │   └── data/file-signatures.json     # 46 magic-byte signatures
 ├── backend/
+│   ├── main.py                       # FastAPI app · all endpoints · middleware
 │   ├── engines/
 │   │   ├── corruption.py             # Real byte-level corruption checks
-│   │   └── llm_cache.py              # AI response caching
-│   ├── middleware/rate_limiter.py    # Per-IP rate limiting
-│   ├── tests/                        # 42 pytest tests
-│   └── main.py                       # FastAPI app
+│   │   └── llm_cache.py              # AI response caching (Redis-backed)
+│   ├── middleware/rate_limiter.py     # Per-IP rate limiting
+│   └── tests/                        # 42 pytest tests
 ├── monitoring/
 │   ├── prometheus.yml                # Scrape config
 │   ├── alerts.yml                    # 9 alerting rules
-│   └── grafana/                      # Auto-provisioned dashboard
-├── deploy/
-│   ├── nginx.conf                    # SPA routing + API proxy
-│   └── start.sh                      # Combined entrypoint
-├── .github/workflows/ci.yml          # CI pipeline
+│   └── grafana/                      # Auto-provisioned dashboards
+├── .github/workflows/
+│   ├── ci.yml                        # typecheck · tests · build · audit
+│   └── pages.yml                     # Demo → GitHub Pages
+├── deploy/nginx.conf
 ├── docker-compose.yml
-├── Dockerfile
 └── .env.production.template
 ```
 
 ---
 
-## API
+## API reference
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/health` | — | Service health + dependency status |
-| `POST` | `/api/v1/file/upload` | — | Upload file; returns SHA-256 + detected type |
+| `POST` | `/api/v1/file/upload` | — | Upload file; returns hash + detected MIME |
 | `POST` | `/api/v1/metadata/extract` | — | Deep metadata from file hash |
-| `POST` | `/api/v1/analyze/code` | — | AI code explanation (demo mode if no key) |
-| `POST` | `/api/v1/diagnostics/corruption` | — | Real byte-level corruption check |
-| `GET` | `/api/v1/cost/{ip}` | `X-Admin-Key` | Accumulated cost for an IP |
+| `POST` | `/api/v1/analyze/code` | — | AI explanation (falls back in demo mode) |
+| `POST` | `/api/v1/diagnostics/corruption` | — | Byte-level corruption analysis |
+| `GET` | `/api/v1/cost/{ip}` | `X-Admin-Key` | Accumulated cost for an IP address |
 | `GET` | `/api/v1/stats` | `X-Admin-Key` | Usage statistics |
 
-Interactive docs at `http://localhost:8000/docs` when the backend is running.
+Interactive docs at `http://localhost:8000/docs`.
+
+---
+
+## Tech stack
+
+**Frontend** — React 18, TypeScript (strict), Vite 8, TailwindCSS, Framer Motion  
+**Viewers** — Three.js (lazy), Monaco Editor, PDF.js, Pyodide, WaveSurfer.js (all CDN, not bundled)  
+**Parsers** — papaparse (RFC 4180 CSV), js-yaml  
+**Backend** — FastAPI, Python 3.11, Pydantic v2  
+**Storage** — Redis (optional), Apache Tika (optional)  
+**Observability** — Prometheus + Grafana (pre-configured, optional)  
+**CI/CD** — GitHub Actions · Docker · nginx
+
+---
+
+## Contributing
+
+1. Fork → feature branch → PR against `main`
+2. `npm test` and `cd backend && pytest` must pass
+3. `npm run typecheck` must exit 0
 
 ---
 
