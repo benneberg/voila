@@ -2,15 +2,14 @@
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/benneberg/voila/main/src/assets/logotype-voila.jpg" alt="Voila!" width="220" height="72" />
-
-# Voila!
-
-**Drop any file. Understand it instantly.**
+<img src="https://raw.githubusercontent.com/benneberg/voila/main/src/assets/logotype-voila.jpg" alt="Voila!" width="220" height="72" /> 
 
 <br/>
 
-[![CI](https://github.com/benneberg/voila/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
+**Drop any file. Understand it instantly.**  
+# Voila!
+
+[![dCI](https://github.com/benneberg/voila/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benneberg/voila/actions/workflows/ci.yml)
 [![Deploy Demo](https://github.com/benneberg/voila/actions/workflows/pages.yml/badge.svg)](https://benneberg.github.io/voila)
 [![Tests](https://img.shields.io/badge/tests-108%20passing-22c55e?logo=jest)](https://github.com/benneberg/voila/actions)
 [![Backend](https://img.shields.io/badge/backend-42%20passing-22c55e?logo=pytest)](https://github.com/benneberg/voila/actions)
